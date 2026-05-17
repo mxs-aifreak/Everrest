@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% block title %}Insurance{% endblock %}
+
+{% block extra_head %}
+<style>
+.ins-urgency-missing  { border-left: 3px solid #adb5bd; }
+.ins-urgency-expired  { border-left: 3px solid #e74c3c; }
+.ins-urgency-expiring { border-left: 3px solid #f39c12; }
+.ins-urgency-active   { border-left: 3px solid #27ae60; }
+.ins-urgency-pending  { border-left: 3px solid #3498db; }
+.ins-urgency-na       { border-left: 3px solid #dee2e6; }
+
+.days-chip {
+  display: inline-block;
+  padding: 0.15em 0.55em;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.days-expired  { background:#fadbd8; color:#922b21; }
+.days-expiring { background:#fdebd0; color:#d35400; }
+.days-ok       { background:#d4efdf; color:#1e8449; }
+.days-none     { background:#f2f3f4; color:#7f8c8d; }
+
+.kpi-ins { border-radius:10px; padding:0.85rem 1rem; color:#fff; min-height:72px; }
+.kpi-ins .ki-val { font-size:1.6rem; font-weight:700; line-height:1; }
+.kpi-ins .ki-lbl { font-size:0.68rem; text-transform:uppercase; letter-spacing:.05em; opacity:.85; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-shield-check me-2"></i>Insurance Tracker</h1>
+  <div class="d-flex gap-2">
+    {% if tab == 'landlord' %}
+    <a href="/insurance/landlord/add" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Landlord Policy</a>
+    {% else %}
+    <a href="/insurance/renters/add" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Renter's Policy</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="insTabs">
+  <li class="nav-item">
+    <a class="nav-link {% if tab == 'renters' %}active{% endif %}" href="/insurance?tab=renters">
+      <i class="bi bi-person-check me-1"></i>Renter's Insurance
+      <span class="badge ms-1 {% if renters_kpis.missing > 0 or renters_kpis.expired > 0 %}bg-danger{% else %}bg-secondary{% endif %}" style="font-size:.65rem;">
+        {{ renters_kpis.missing + renters_kpis.expired }}
+      </span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if tab == 'landlord' %}active{% endif %}" href="/insurance?tab=landlord">
+      <i class="bi bi-house-gear me-1"></i>Landlord Insurance
+      <span class="badge ms-1 {% if landlord_kpis.missing > 0 or landlord_kpis.expired > 0 %}bg-danger{% else %}bg-secondary{% endif %}" style="font-size:.65rem;">
+        {{ landlord_kpis.missing + landlord_kpis.expired }}
+      </span>
+    </a>
+  </li>
+</ul>
+
+{% if tab == 'renters' %}
+  {% set rows = renters_rows %}
+  {% set kpis = renters_kpis %}
+  {% set ins_type = 'renters' %}
+{% else %}
+  {% set rows = landlord_rows %}
+  {% set kpis = landlord_kpis %}
+  {% set ins_type = 'landlord' %}
+{% endif %}
+
+<!-- KPI strip -->
+<div class="row g-2 mb-3">
+  <div class="col-4 col-sm-2">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#1f618d,#2e86c1)">
+      <div class="ki-val">{{ kpis.total }}</div>
+      <div class="ki-lbl">Properties</div>
+    </div>
+  </div>
+  <div class="col-4 col-sm-2">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#1a7a3f,#27ae60)">
+      <div class="ki-val">{{ kpis.active }}</div>
+      <div class="ki-lbl">Active</div>
+    </div>
+  </div>
+  <div class="col-4 col-sm-2">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#1f618d,#3498db)">
+      <div class="ki-val">{{ kpis.pending }}</div>
+      <div class="ki-lbl">Pending</div>
+    </div>
+  </div>
+  <div class="col-4 col-sm-2">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#b7770d,#f39c12)">
+      <div class="ki-val">{{ kpis.expiring }}</div>
+      <div class="ki-lbl">Expiring ≤30d</div>
+    </div>
+  </div>
+  <div class="col-4 col-sm-2">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#a93226,#e74c3c)">
+      <div class="ki-val">{{ kpis.expired }}</div>
+      <div class="ki-lbl">Expired</div>
+    </div>
+  </div>
+  <div class="col-4 col-sm-2">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#566573,#7f8c8d)">
+      <div class="ki-val">{{ kpis.missing }}</div>
+      <div class="ki-lbl">No Policy</div>
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="width:4px;" class="p-0"></th>
+            <th>Property</th>
+            {% if tab == 'renters' %}
+            <th class="d-none d-md-table-cell">Tenant</th>
+            {% else %}
+            <th class="d-none d-md-table-cell">Owner</th>
+            {% endif %}
+            <th class="d-none d-lg-table-cell">Provider</th>
+            <th class="d-none d-lg-table-cell">Policy #</th>
+            <th class="d-none d-sm-table-cell">Expiry</th>
+            <th>Days Left</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          {% set p = row.policy %}
+          <tr class="ins-urgency-{{ row.urgency }}">
+            <td class="p-0" style="width:4px;"></td>
+            <td>
+              <a href="/properties/{{ row.property.id }}" class="fw-semibold text-decoration-none text-dark" style="font-size:.88rem;">
+                {{ row.property.address }}
+              </a>
+              <div class="text-muted" style="font-size:.75rem;">{{ row.property.city }}</div>
+            </td>
+            {% if tab == 'renters' %}
+            <td class="d-none d-md-table-cell small text-muted">{{ row.tenant or '—' }}</td>
+            {% else %}
+            <td class="d-none d-md-table-cell small text-muted">{{ row.owner.name if row.owner else '—' }}</td>
+            {% endif %}
+            <td class="d-none d-lg-table-cell small">{{ p.provider if p else '—' }}</td>
+            <td class="d-none d-lg-table-cell small text-muted">{{ p.policy_number if p else '—' }}</td>
+            <td class="d-none d-sm-table-cell small">
+              {% if p and p.expiration_date %}
+                {{ p.expiration_date.strftime('%b %d, %Y') }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if row.urgency == 'missing' %}
+                <span class="days-chip days-none">No policy</span>
+              {% elif row.days_left is none %}
+                <span class="days-chip days-none">—</span>
+              {% elif row.days_left < 0 %}
+                <span class="days-chip days-expired">{{ row.days_left|abs }}d ago</span>
+              {% elif row.days_left <= 30 %}
+                <span class="days-chip days-expiring">{{ row.days_left }}d left</span>
+              {% else %}
+                <span class="days-chip days-ok">{{ row.days_left }}d left</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.urgency == 'missing' %}
+                <span class="status-badge badge-na">Missing</span>
+              {% elif p.status == 'Active' %}
+                <span class="status-badge badge-active">Active</span>
+              {% elif p.status == 'Expired' %}
+                <span class="status-badge badge-expired">Expired</span>
+              {% elif p.status == 'Pending' %}
+                <span class="status-badge badge-pending">Pending</span>
+              {% else %}
+                <span class="status-badge badge-na">N/A</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if row.urgency == 'missing' %}
+                <a href="/insurance/{{ ins_type }}/add?property_id={{ row.property.id }}"
+                   class="btn btn-sm btn-outline-navy" style="border-color:var(--navy);color:var(--navy);">
+                  <i class="bi bi-plus-lg"></i>
+                </a>
+              {% else %}
+                <a href="/insurance/{{ ins_type }}/{{ p.id }}/edit"
+                   class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="d-flex flex-wrap gap-3 mt-3" style="font-size:.78rem;color:#6c757d;">
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#27ae60;margin-right:4px;"></span>Active</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3498db;margin-right:4px;"></span>Pending</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f39c12;margin-right:4px;"></span>Expiring ≤30 days</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e74c3c;margin-right:4px;"></span>Expired</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#adb5bd;margin-right:4px;"></span>No policy on file</span>
+</div>
+{% endblock %}

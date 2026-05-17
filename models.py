@@ -137,6 +137,28 @@ class WorkOrder(db.Model):
     source = db.Column(db.String(20), default='Manual')
 
 
+class Insurance(db.Model):
+    __tablename__ = 'insurance'
+    id = db.Column(db.Integer, primary_key=True)
+    insurance_type = db.Column(db.String(20), nullable=False)  # 'Renters' or 'Landlord'
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id', ondelete='CASCADE'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=True)  # Landlord only
+    provider = db.Column(db.String(200))
+    policy_number = db.Column(db.String(100))
+    coverage_amount = db.Column(db.Numeric(12, 2))
+    annual_premium = db.Column(db.Numeric(10, 2))
+    effective_date = db.Column(db.Date)
+    expiration_date = db.Column(db.Date)
+    status = db.Column(db.String(50), default='Pending')
+    date_received = db.Column(db.Date)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('insurance_policies', lazy=True))
+    owner = db.relationship('Owner', backref=db.backref('insurance_policies', lazy=True))
+
+
 class Inspection(db.Model):
     __tablename__ = 'inspections'
     id = db.Column(db.Integer, primary_key=True)

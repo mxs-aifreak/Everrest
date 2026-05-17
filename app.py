@@ -8,6 +8,7 @@ from blueprints.work_orders import work_orders_bp
 from blueprints.inspections import inspections_bp
 from blueprints.sprinkler import sprinkler_bp
 from blueprints.owners import owners_bp
+from blueprints.insurance import insurance_bp
 
 
 def create_app():
@@ -28,6 +29,7 @@ def create_app():
     app.register_blueprint(inspections_bp)
     app.register_blueprint(sprinkler_bp)
     app.register_blueprint(owners_bp)
+    app.register_blueprint(insurance_bp)
 
     @app.route('/')
     def dashboard():
