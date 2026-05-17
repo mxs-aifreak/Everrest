@@ -17,6 +17,7 @@ SHUTOFF_LOCATIONS = [
     'Utility Room', 'Side of House', 'Front Yard Ground Box', 'Backyard Ground Box', 'Other'
 ]
 BLOWOUT_STATUSES = ['Completed', 'Scheduled', 'Pending', 'Skipped – Owner Decision', 'N/A']
+TURNOFF_STATUSES = ['Turned Off', 'Pending', 'N/A']
 TURNON_STATUSES = ['Active', 'Turned On', 'Scheduled', 'Pending', 'Skipped – Owner Decision', 'N/A']
 SYSTEM_WORKING = ['Yes', 'No', 'Partially Working']
 BACKFLOW_STATUSES = ['OK', 'Broken', 'Replaced', 'Not Tested', 'N/A']
@@ -137,6 +138,7 @@ def property_detail(prop_id):
                            control_methods=CONTROL_METHODS,
                            shutoff_locations=SHUTOFF_LOCATIONS,
                            blowout_statuses=BLOWOUT_STATUSES,
+                           turnoff_statuses=TURNOFF_STATUSES,
                            turnon_statuses=TURNON_STATUSES,
                            system_working=SYSTEM_WORKING,
                            backflow_statuses=BACKFLOW_STATUSES,
@@ -200,11 +202,22 @@ def edit_sprinkler(prop_id):
     spr.controller_model = request.form.get('controller_model', '')
     spr.control_method = request.form.get('control_method', '')
     spr.shutoff_valve_location = request.form.get('shutoff_valve_location', '')
-    spr.fall_blowout_status = request.form.get('fall_blowout_status', '')
+    prev_blowout = spr.fall_blowout_status
+    new_blowout = request.form.get('fall_blowout_status', '')
+    spr.fall_blowout_status = new_blowout
     spr.fall_blowout_date = _date(request.form.get('fall_blowout_date'))
     spr.blowout_vendor = request.form.get('blowout_vendor', '')
+    spr.turnoff_status = request.form.get('turnoff_status', 'Pending')
+    spr.turnoff_date = _date(request.form.get('turnoff_date'))
     spr.spring_turnon_status = request.form.get('spring_turnon_status', '')
     spr.spring_turnon_date = _date(request.form.get('spring_turnon_date'))
+    if new_blowout == 'Completed' and prev_blowout != 'Completed':
+        from datetime import date as _date_cls
+        spr.turnoff_status = 'Turned Off'
+        if not spr.turnoff_date:
+            spr.turnoff_date = _date_cls.today()
+        spr.spring_turnon_status = 'Pending'
+        spr.spring_turnon_date = None
     spr.system_working = request.form.get('system_working', '')
     spr.backflow_valve_status = request.form.get('backflow_valve_status', '')
     spr.issue_details = request.form.get('issue_details', '')

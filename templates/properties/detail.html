@@ -206,14 +206,25 @@
               <input type="text" name="blowout_vendor" class="form-control form-control-sm" value="{{ spr.blowout_vendor if spr else '' }}">
             </div>
             <div class="col-6 col-md-3">
+              <label class="form-label">Turn Off Status</label>
+              <select name="turnoff_status" id="prop_turnoff_status" class="form-select form-select-sm">
+                {% for s in turnoff_statuses %}<option {% if spr and spr.turnoff_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Turn Off Date</label>
+              <input type="date" name="turnoff_date" id="prop_turnoff_date" class="form-control form-control-sm"
+                     value="{{ spr.turnoff_date.isoformat() if spr and spr.turnoff_date else '' }}">
+            </div>
+            <div class="col-6 col-md-3">
               <label class="form-label">Spring Turn-On Status</label>
-              <select name="spring_turnon_status" class="form-select form-select-sm">
+              <select name="spring_turnon_status" id="prop_spring_turnon_status" class="form-select form-select-sm">
                 {% for s in turnon_statuses %}<option {% if spr and spr.spring_turnon_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
             </div>
             <div class="col-6 col-md-3">
               <label class="form-label">Turn-On Date</label>
-              <input type="date" name="spring_turnon_date" class="form-control form-control-sm" value="{{ spr.spring_turnon_date.isoformat() if spr and spr.spring_turnon_date else '' }}">
+              <input type="date" name="spring_turnon_date" id="prop_spring_turnon_date" class="form-control form-control-sm" value="{{ spr.spring_turnon_date.isoformat() if spr and spr.spring_turnon_date else '' }}">
             </div>
             <hr class="my-1">
             <div class="col-12">
