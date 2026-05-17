@@ -103,6 +103,14 @@ def sprinkler_detail(prop_id):
             spr.spring_turnon_status = 'Pending'
             spr.spring_turnon_date = None
 
+        # Auto-logic: when spring turn-on is marked Active/Turned On, reset fall/winter fields
+        new_turnon = spr.spring_turnon_status
+        if new_turnon in ('Active', 'Turned On'):
+            spr.fall_blowout_status = 'Pending'
+            spr.fall_blowout_date = None
+            spr.turnoff_status = 'Pending'
+            spr.turnoff_date = None
+
         db.session.commit()
         _sync_sprinkler_wo(spr, prop)
         flash('Sprinkler record updated.', 'success')

@@ -127,6 +127,12 @@
               <label class="form-label">Date</label>
               <input type="date" name="spring_turnon_date" id="spring_turnon_date" class="form-control form-control-sm" value="{{ spr.spring_turnon_date.isoformat() if spr and spr.spring_turnon_date else '' }}">
             </div>
+            <div class="col-12">
+              <div id="springTurnOnAlert" class="alert alert-info py-2 px-3 mb-0" style="font-size:.82rem;display:none;">
+                <i class="bi bi-droplet me-1"></i>
+                <strong>Spring turn-on activated.</strong> Fall Blowout and Turn Off reset to Pending for next season.
+              </div>
+            </div>
 
             <!-- Repairs -->
             <div class="col-12"><hr class="my-0"><p class="fw-semibold text-muted small mb-0 mt-2">Repair Tracking</p></div>
@@ -210,6 +216,22 @@ if (blowoutSelect) {
     } else {
       if (autoAlert) autoAlert.style.display = 'none';
       if (autoBadge) autoBadge.style.display = 'none';
+    }
+  });
+}
+
+// Reverse: Spring Turn-On → Active/Turned On resets fall/winter fields
+const springTurnOnAlert = document.getElementById('springTurnOnAlert');
+if (springStatus) {
+  springStatus.addEventListener('change', function () {
+    if (this.value === 'Active' || this.value === 'Turned On') {
+      blowoutSelect.value = 'Pending';
+      document.querySelector('[name="fall_blowout_date"]').value = '';
+      turnoffStatus.value = 'Pending';
+      turnoffDate.value = '';
+      if (springTurnOnAlert) springTurnOnAlert.style.display = 'block';
+    } else {
+      if (springTurnOnAlert) springTurnOnAlert.style.display = 'none';
     }
   });
 }

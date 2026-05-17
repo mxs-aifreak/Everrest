@@ -218,6 +218,12 @@ def edit_sprinkler(prop_id):
             spr.turnoff_date = _date_cls.today()
         spr.spring_turnon_status = 'Pending'
         spr.spring_turnon_date = None
+
+    if spr.spring_turnon_status in ('Active', 'Turned On'):
+        spr.fall_blowout_status = 'Pending'
+        spr.fall_blowout_date = None
+        spr.turnoff_status = 'Pending'
+        spr.turnoff_date = None
     spr.system_working = request.form.get('system_working', '')
     spr.backflow_valve_status = request.form.get('backflow_valve_status', '')
     spr.issue_details = request.form.get('issue_details', '')
