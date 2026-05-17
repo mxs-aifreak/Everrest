@@ -77,15 +77,15 @@
             </div>
 
             <!-- Fall Blowout -->
-            <div class="col-12"><hr class="my-0"><p class="fw-semibold text-muted small mb-0 mt-2">Fall Blowout</p></div>
+            <div class="col-12"><hr class="my-0"><p class="fw-semibold text-muted small mb-0 mt-2">Fall Blowout / Winterization</p></div>
             <div class="col-6 col-md-3">
-              <label class="form-label">Status</label>
-              <select name="fall_blowout_status" class="form-select form-select-sm">
+              <label class="form-label">Blowout Status</label>
+              <select name="fall_blowout_status" id="fall_blowout_status" class="form-select form-select-sm">
                 {% for s in blowout_statuses %}<option {% if spr and spr.fall_blowout_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
             </div>
             <div class="col-6 col-md-3">
-              <label class="form-label">Date</label>
+              <label class="form-label">Blowout Date</label>
               <input type="date" name="fall_blowout_date" class="form-control form-control-sm" value="{{ spr.fall_blowout_date.isoformat() if spr and spr.fall_blowout_date else '' }}">
             </div>
             <div class="col-12 col-md-6">
@@ -93,17 +93,39 @@
               <input type="text" name="blowout_vendor" class="form-control form-control-sm" value="{{ spr.blowout_vendor if spr else '' }}">
             </div>
 
+            <!-- Turn Off (auto-set when blowout completed) -->
+            <div class="col-6 col-md-3">
+              <label class="form-label d-flex align-items-center gap-1">
+                Turn Off Status
+                <span id="autoSetBadge" class="badge bg-success ms-1" style="font-size:.65rem;display:none;">Auto-set</span>
+              </label>
+              <select name="turnoff_status" id="turnoff_status" class="form-select form-select-sm">
+                {% for s in turnoff_statuses %}<option {% if spr and spr.turnoff_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Turn Off Date</label>
+              <input type="date" name="turnoff_date" id="turnoff_date" class="form-control form-control-sm"
+                     value="{{ spr.turnoff_date.isoformat() if spr and spr.turnoff_date else '' }}">
+            </div>
+            <div class="col-12">
+              <div id="blowoutCompletedAlert" class="alert alert-success py-2 px-3 mb-0" style="font-size:.82rem;display:none;">
+                <i class="bi bi-check-circle me-1"></i>
+                <strong>Fall blowout marked complete.</strong> Turn Off status set to "Turned Off", Spring Turn-On reset to Pending for next season.
+              </div>
+            </div>
+
             <!-- Spring Turn-On -->
             <div class="col-12"><hr class="my-0"><p class="fw-semibold text-muted small mb-0 mt-2">Spring Turn-On</p></div>
             <div class="col-6 col-md-3">
               <label class="form-label">Status</label>
-              <select name="spring_turnon_status" class="form-select form-select-sm">
+              <select name="spring_turnon_status" id="spring_turnon_status" class="form-select form-select-sm">
                 {% for s in turnon_statuses %}<option {% if spr and spr.spring_turnon_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
             </div>
             <div class="col-6 col-md-3">
               <label class="form-label">Date</label>
-              <input type="date" name="spring_turnon_date" class="form-control form-control-sm" value="{{ spr.spring_turnon_date.isoformat() if spr and spr.spring_turnon_date else '' }}">
+              <input type="date" name="spring_turnon_date" id="spring_turnon_date" class="form-control form-control-sm" value="{{ spr.spring_turnon_date.isoformat() if spr and spr.spring_turnon_date else '' }}">
             </div>
 
             <!-- Repairs -->
@@ -162,4 +184,34 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const blowoutSelect = document.getElementById('fall_blowout_status');
+const turnoffStatus = document.getElementById('turnoff_status');
+const turnoffDate   = document.getElementById('turnoff_date');
+const springStatus  = document.getElementById('spring_turnon_status');
+const springDate    = document.getElementById('spring_turnon_date');
+const autoAlert     = document.getElementById('blowoutCompletedAlert');
+const autoBadge     = document.getElementById('autoSetBadge');
+
+if (blowoutSelect) {
+  blowoutSelect.addEventListener('change', function () {
+    if (this.value === 'Completed') {
+      turnoffStatus.value = 'Turned Off';
+      if (!turnoffDate.value) {
+        turnoffDate.value = new Date().toISOString().split('T')[0];
+      }
+      springStatus.value = 'Pending';
+      springDate.value = '';
+      if (autoAlert) autoAlert.style.display = 'block';
+      if (autoBadge) autoBadge.style.display = 'inline';
+    } else {
+      if (autoAlert) autoAlert.style.display = 'none';
+      if (autoBadge) autoBadge.style.display = 'none';
+    }
+  });
+}
+</script>
 {% endblock %}

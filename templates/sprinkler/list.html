@@ -51,6 +51,7 @@
             <th>Has System</th>
             <th class="d-none d-md-table-cell">Controller</th>
             <th>Fall Blowout</th>
+            <th class="d-none d-md-table-cell">Turn Off</th>
             <th>Spring Turn-On</th>
             <th class="d-none d-md-table-cell">System Working</th>
             <th>Repair</th>
@@ -84,6 +85,15 @@
                 {% elif bs and 'Skipped' in bs %}<span class="status-badge badge-na">Skipped</span>
                 {% else %}<span class="status-badge badge-na">{{ bs or '—' }}</span>{% endif %}
                 {% if spr.fall_blowout_date %}<div class="text-muted" style="font-size:0.72rem;">{{ spr.fall_blowout_date|dateformat }}</div>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell">
+              {% if spr %}
+                {% set toff = spr.turnoff_status %}
+                {% if toff == 'Turned Off' %}<span class="status-badge badge-completed">Turned Off</span>
+                {% elif toff == 'Pending' %}<span class="status-badge badge-pending">Pending</span>
+                {% else %}<span class="status-badge badge-na">{{ toff or '—' }}</span>{% endif %}
+                {% if spr.turnoff_date %}<div class="text-muted" style="font-size:0.72rem;">{{ spr.turnoff_date|dateformat }}</div>{% endif %}
               {% else %}—{% endif %}
             </td>
             <td>

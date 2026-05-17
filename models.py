@@ -108,6 +108,8 @@ class Sprinkler(db.Model):
     repair_vendor = db.Column(db.String(200))
     repair_cost = db.Column(db.Numeric(10, 2))
     notes = db.Column(db.Text)
+    turnoff_status = db.Column(db.String(50), default='Pending')
+    turnoff_date = db.Column(db.Date)
     linked_wo_id = db.Column(db.Integer, db.ForeignKey('work_orders.id'), nullable=True)
 
     linked_wo = db.relationship('WorkOrder', foreign_keys=[linked_wo_id])
