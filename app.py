@@ -122,10 +122,26 @@ def create_app():
     with app.app_context():
         os.makedirs(app.instance_path, exist_ok=True)
         db.create_all()
+        _run_migrations()
         from seed_data import seed_if_empty
         seed_if_empty()
 
     return app
+
+
+def _run_migrations():
+    """Safely add new columns to existing tables that db.create_all() won't touch."""
+    migrations = [
+        "ALTER TABLE sprinkler ADD COLUMN IF NOT EXISTS turnoff_status VARCHAR(50) DEFAULT 'Pending'",
+        "ALTER TABLE sprinkler ADD COLUMN IF NOT EXISTS turnoff_date DATE",
+    ]
+    with db.engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(db.text(sql))
+            except Exception:
+                pass
+        conn.commit()
 
 
 app = create_app()
