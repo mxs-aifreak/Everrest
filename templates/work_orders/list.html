@@ -79,7 +79,11 @@
               <span class="fw-semibold small">{{ wo.wo_number }}</span>
               {% if wo.source == 'Sprinkler' %}<span class="status-badge badge-na ms-1" style="font-size:0.68rem;">SPR</span>{% endif %}
             </td>
-            <td class="small">{{ wo.property.address if wo.property else '—' }}</td>
+            <td class="small">
+              {% if wo.property %}
+                <a href="/properties/{{ wo.property.id }}?tab=workorders" class="text-decoration-none text-dark">{{ wo.property.address }}</a>
+              {% else %}—{% endif %}
+            </td>
             <td class="d-none d-md-table-cell small">{{ wo.category }}</td>
             <td>
               {% set p = wo.priority %}

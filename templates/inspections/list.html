@@ -85,7 +85,7 @@
             <td class="small text-nowrap">{{ insp.inspection_date|dateformat if insp.inspection_date else '—' }}</td>
             <td class="small">
               {% if insp.property %}
-                <a href="/properties/{{ insp.property.id }}" class="text-decoration-none text-dark">{{ insp.property.address }}</a>
+                <a href="/properties/{{ insp.property.id }}?tab=inspections" class="text-decoration-none text-dark">{{ insp.property.address }}</a>
               {% else %}—{% endif %}
             </td>
             <td class="small">{{ insp.inspection_type or '—' }}</td>
