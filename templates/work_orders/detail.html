@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}{{ wo.wo_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-tools me-2"></i>{{ wo.wo_number }}</h1>
+    <div class="text-muted small">
+      {{ wo.property.address if wo.property else '—' }} ·
+      {% set s = wo.status %}
+      {% if s == 'Completed' %}<span class="status-badge badge-completed">{{ s }}</span>
+      {% elif s == 'Open' %}<span class="status-badge badge-open">{{ s }}</span>
+      {% elif s == 'Assigned' %}<span class="status-badge badge-assigned">{{ s }}</span>
+      {% elif s == 'In Progress' %}<span class="status-badge badge-inprogress">{{ s }}</span>
+      {% elif s == 'On Hold' %}<span class="status-badge badge-onhold">{{ s }}</span>
+      {% elif s == 'Cancelled' %}<span class="status-badge badge-cancelled">{{ s }}</span>
+      {% else %}<span class="status-badge badge-pending">{{ s }}</span>{% endif %}
+      {% if wo.source == 'Sprinkler' %}<span class="status-badge badge-na ms-1">Sprinkler Auto</span>{% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/work-orders" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <form method="post" action="/work-orders/{{ wo.id }}/delete" class="d-inline">
+      <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this work order?">
+        <i class="bi bi-trash"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Detail panel -->
+  <div class="col-12 col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-info-circle me-2"></i>Details</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Property</dt>
+          <dd class="col-7">
+            {% if wo.property %}<a href="/properties/{{ wo.property.id }}">{{ wo.property.address }}</a>{% else %}—{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Owner</dt>
+          <dd class="col-7">
+            {% if wo.owner %}<a href="/owners/{{ wo.owner.id }}">{{ wo.owner.name }}</a>{% else %}—{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Category</dt><dd class="col-7">{{ wo.category or '—' }}</dd>
+          <dt class="col-5 text-muted">Priority</dt>
+          <dd class="col-7">
+            {% set p = wo.priority %}
+            {% if p == 'Critical' %}<span class="status-badge badge-critical">{{ p }}</span>
+            {% elif p == 'High' %}<span class="status-badge badge-high">{{ p }}</span>
+            {% elif p == 'Medium' %}<span class="status-badge badge-medium">{{ p }}</span>
+            {% else %}<span class="status-badge badge-low">{{ p }}</span>{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Submitted</dt><dd class="col-7">{{ wo.date_submitted|dateformat if wo.date_submitted else '—' }}</dd>
+          <dt class="col-5 text-muted">Assigned</dt><dd class="col-7">{{ wo.date_assigned|dateformat if wo.date_assigned else '—' }}</dd>
+          <dt class="col-5 text-muted">Target</dt><dd class="col-7">{{ wo.target_completion|dateformat if wo.target_completion else '—' }}</dd>
+          <dt class="col-5 text-muted">Completed</dt><dd class="col-7">{{ wo.date_completed|dateformat if wo.date_completed else '—' }}</dd>
+          <dt class="col-5 text-muted">Vendor</dt><dd class="col-7">{{ wo.vendor_name or '—' }}</dd>
+          <dt class="col-5 text-muted">Vendor Ph.</dt><dd class="col-7">{{ wo.vendor_phone or '—' }}</dd>
+          <dt class="col-5 text-muted">Est. Cost</dt><dd class="col-7">{{ wo.estimated_cost | currency }}</dd>
+          <dt class="col-5 text-muted">Actual Cost</dt><dd class="col-7 fw-semibold">{{ wo.actual_cost | currency }}</dd>
+          <dt class="col-5 text-muted">Invoice #</dt><dd class="col-7">{{ wo.invoice_number or '—' }}</dd>
+          <dt class="col-5 text-muted">Invoice Status</dt>
+          <dd class="col-7">
+            {% if wo.invoice_status == 'Received' %}<span class="status-badge badge-completed">{{ wo.invoice_status }}</span>
+            {% elif wo.invoice_status == 'Pending' %}<span class="status-badge badge-pending">{{ wo.invoice_status }}</span>
+            {% elif wo.invoice_status == 'Disputed' %}<span class="status-badge badge-critical">{{ wo.invoice_status }}</span>
+            {% else %}<span class="status-badge badge-na">{{ wo.invoice_status }}</span>{% endif %}
+          </dd>
+        </dl>
+        {% if wo.description %}
+        <hr>
+        <p class="small mb-1 fw-semibold text-muted">Description</p>
+        <p class="small mb-0">{{ wo.description }}</p>
+        {% endif %}
+        {% if wo.notes %}
+        <hr>
+        <p class="small mb-1 fw-semibold text-muted">Notes</p>
+        <p class="small mb-0 fst-italic">{{ wo.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit form -->
+  <div class="col-12 col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-pencil me-2"></i>Edit Work Order</div>
+      <div class="card-body">
+        <form method="post" action="/work-orders/{{ wo.id }}/edit">
+          <div class="row g-2">
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Property</label>
+              <select name="property_id" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for p in properties %}<option value="{{ p.id }}" {% if wo.property_id == p.id %}selected{% endif %}>{{ p.address }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Owner</label>
+              <select name="owner_id" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in owners %}<option value="{{ o.id }}" {% if wo.owner_id == o.id %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Category</label>
+              <select name="category" class="form-select form-select-sm">
+                {% for c in categories %}<option {% if wo.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Priority</label>
+              <select name="priority" class="form-select form-select-sm">
+                {% for p in priorities %}<option {% if wo.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                {% for s in statuses %}<option {% if wo.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Invoice Status</label>
+              <select name="invoice_status" class="form-select form-select-sm">
+                {% for s in invoice_statuses %}<option {% if wo.invoice_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea name="description" class="form-control form-control-sm" rows="2">{{ wo.description or '' }}</textarea>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Vendor Name</label>
+              <input type="text" name="vendor_name" class="form-control form-control-sm" value="{{ wo.vendor_name or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Vendor Phone</label>
+              <input type="tel" name="vendor_phone" class="form-control form-control-sm" value="{{ wo.vendor_phone or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Date Submitted</label>
+              <input type="date" name="date_submitted" class="form-control form-control-sm" value="{{ wo.date_submitted.isoformat() if wo.date_submitted else '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Date Assigned</label>
+              <input type="date" name="date_assigned" class="form-control form-control-sm" value="{{ wo.date_assigned.isoformat() if wo.date_assigned else '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Target Completion</label>
+              <input type="date" name="target_completion" class="form-control form-control-sm" value="{{ wo.target_completion.isoformat() if wo.target_completion else '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Date Completed</label>
+              <input type="date" name="date_completed" class="form-control form-control-sm" value="{{ wo.date_completed.isoformat() if wo.date_completed else '' }}">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Est. Cost</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" name="estimated_cost" step="0.01" class="form-control" value="{{ wo.estimated_cost or '' }}">
+              </div>
+            </div>
+            <div class="col-4">
+              <label class="form-label">Actual Cost</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" name="actual_cost" step="0.01" class="form-control" value="{{ wo.actual_cost or '' }}">
+              </div>
+            </div>
+            <div class="col-4">
+              <label class="form-label">Invoice #</label>
+              <input type="text" name="invoice_number" class="form-control form-control-sm" value="{{ wo.invoice_number or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control form-control-sm" rows="2">{{ wo.notes or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-navy btn-sm w-100">Save Changes</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

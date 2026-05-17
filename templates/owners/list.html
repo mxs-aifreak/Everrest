@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Owners{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-people me-2"></i>Owners</h1>
+  <a href="/owners/new" class="btn btn-navy"><i class="bi bi-person-plus me-1"></i>Add Owner</a>
+</div>
+
+<div class="filter-bar mb-3">
+  <form method="get" class="d-flex gap-2">
+    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search name, email, phone…" value="{{ search }}">
+    <button type="submit" class="btn btn-navy btn-sm text-nowrap">Search</button>
+    {% if search %}<a href="/owners" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if owners %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th class="d-none d-sm-table-cell">Phone</th>
+            <th class="d-none d-md-table-cell">Email</th>
+            <th>Properties</th>
+            <th>Contract</th>
+            <th class="d-none d-md-table-cell">Insurance</th>
+            <th class="d-none d-lg-table-cell">Mgmt Fee</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in owners %}
+          <tr>
+            <td>
+              <a href="/owners/{{ o.id }}" class="fw-semibold text-decoration-none text-dark">{{ o.name }}</a>
+            </td>
+            <td class="d-none d-sm-table-cell small">{{ o.phone or '—' }}</td>
+            <td class="d-none d-md-table-cell small text-truncate" style="max-width:180px;">{{ o.email or '—' }}</td>
+            <td class="small">
+              {% set props = o.properties %}
+              {% if props %}
+                {% for p in props[:2] %}
+                  <a href="/properties/{{ p.id }}" class="text-decoration-none text-muted d-block" style="font-size:0.8rem;">{{ p.address }}</a>
+                {% endfor %}
+                {% if props|length > 2 %}<span class="text-muted" style="font-size:0.75rem;">+{{ props|length - 2 }} more</span>{% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if o.contract_status == 'Signed' %}<span class="status-badge badge-signed">Signed</span>
+              {% elif o.contract_status == 'Sent for Signature' %}<span class="status-badge badge-sent">Sent</span>
+              {% else %}<span class="status-badge badge-notsent">Not Started</span>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell">
+              {% if o.landlord_insurance_status == 'Active' %}<span class="status-badge badge-active">Active</span>
+              {% elif o.landlord_insurance_status == 'Expired' %}<span class="status-badge badge-expired">Expired</span>
+              {% elif o.landlord_insurance_status == 'Pending' %}<span class="status-badge badge-pending">Pending</span>
+              {% else %}<span class="status-badge badge-na">N/A</span>{% endif %}
+            </td>
+            <td class="d-none d-lg-table-cell small">{{ o.monthly_mgmt_fee | currency }}/mo</td>
+            <td><a href="/owners/{{ o.id }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-people fs-1 d-block mb-3 opacity-40"></i>
+      <p class="mb-3">No owners found.</p>
+      <a href="/owners/new" class="btn btn-navy">Add First Owner</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

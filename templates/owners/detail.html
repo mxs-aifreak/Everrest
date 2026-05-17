@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% block title %}{{ owner.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-person me-2"></i>{{ owner.name }}</h1>
+    <div class="text-muted small">
+      {% if owner.contract_status == 'Signed' %}<span class="status-badge badge-signed">Signed</span>
+      {% elif owner.contract_status == 'Sent for Signature' %}<span class="status-badge badge-sent">Sent for Signature</span>
+      {% else %}<span class="status-badge badge-notsent">Contract Not Started</span>{% endif %}
+      &nbsp;
+      {% if owner.landlord_insurance_status == 'Active' %}<span class="status-badge badge-active">Insurance Active</span>
+      {% elif owner.landlord_insurance_status == 'Expired' %}<span class="status-badge badge-expired">Insurance Expired</span>
+      {% elif owner.landlord_insurance_status == 'Pending' %}<span class="status-badge badge-pending">Insurance Pending</span>
+      {% else %}<span class="status-badge badge-na">Insurance N/A</span>{% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/owners" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <form method="post" action="/owners/{{ owner.id }}/delete" class="d-inline">
+      <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this owner? They will be unlinked from all properties.">
+        <i class="bi bi-trash"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Contact + Fees summary -->
+  <div class="col-12 col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-person-lines-fill me-2"></i>Contact Info</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Phone</dt><dd class="col-7">{{ owner.phone or '—' }}</dd>
+          <dt class="col-5 text-muted">Email</dt><dd class="col-7 text-truncate">{{ owner.email or '—' }}</dd>
+          <dt class="col-5 text-muted">Emergency</dt><dd class="col-7">{{ owner.emergency_contact or '—' }}</dd>
+          <dt class="col-5 text-muted">Emerg. Ph.</dt><dd class="col-7">{{ owner.emergency_phone or '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-cash-stack me-2"></i>Fees</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-7 text-muted">Onboarding</dt><dd class="col-5">{{ owner.onboarding_fee | currency }}</dd>
+          <dt class="col-7 text-muted">Reserve</dt><dd class="col-5">{{ owner.reserve_fee | currency }}</dd>
+          <dt class="col-7 text-muted">Renewal</dt><dd class="col-5">{{ owner.renewal_fee | currency }}</dd>
+          <dt class="col-7 text-muted">Monthly Mgmt</dt><dd class="col-5 fw-semibold">{{ owner.monthly_mgmt_fee | currency }}/mo</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-shield-check me-2"></i>Contract & Insurance</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Contract</dt>
+          <dd class="col-7">
+            {% if owner.contract_status == 'Signed' %}<span class="status-badge badge-signed">Signed</span>
+            {% elif owner.contract_status == 'Sent for Signature' %}<span class="status-badge badge-sent">Sent</span>
+            {% else %}<span class="status-badge badge-notsent">Not Started</span>{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Insurance</dt>
+          <dd class="col-7">
+            {% if owner.landlord_insurance_status == 'Active' %}<span class="status-badge badge-active">Active</span>
+            {% elif owner.landlord_insurance_status == 'Expired' %}<span class="status-badge badge-expired">Expired</span>
+            {% elif owner.landlord_insurance_status == 'Pending' %}<span class="status-badge badge-pending">Pending</span>
+            {% else %}<span class="status-badge badge-na">N/A</span>{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Ins. Expiry</dt>
+          <dd class="col-7">{{ owner.landlord_insurance_expiry|dateformat if owner.landlord_insurance_expiry else '—' }}</dd>
+        </dl>
+        {% if owner.notes %}
+        <hr>
+        <p class="small fw-semibold text-muted mb-1">Notes</p>
+        <p class="small mb-0 fst-italic">{{ owner.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit + Properties -->
+  <div class="col-12 col-lg-8">
+    <!-- Edit form -->
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-pencil me-2"></i>Edit Owner</div>
+      <div class="card-body">
+        <form method="post" action="/owners/{{ owner.id }}/edit">
+          <div class="row g-2">
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Name</label>
+              <input type="text" name="name" class="form-control form-control-sm" value="{{ owner.name }}" required>
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="form-label">Phone</label>
+              <input type="tel" name="phone" class="form-control form-control-sm" value="{{ owner.phone or '' }}">
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control form-control-sm" value="{{ owner.email or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Emergency Contact</label>
+              <input type="text" name="emergency_contact" class="form-control form-control-sm" value="{{ owner.emergency_contact or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Emergency Phone</label>
+              <input type="tel" name="emergency_phone" class="form-control form-control-sm" value="{{ owner.emergency_phone or '' }}">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Onboarding Fee</label>
+              <div class="input-group input-group-sm"><span class="input-group-text">$</span>
+              <input type="number" name="onboarding_fee" step="0.01" class="form-control" value="{{ owner.onboarding_fee or '' }}"></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Reserve Fee</label>
+              <div class="input-group input-group-sm"><span class="input-group-text">$</span>
+              <input type="number" name="reserve_fee" step="0.01" class="form-control" value="{{ owner.reserve_fee or '' }}"></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Renewal Fee</label>
+              <div class="input-group input-group-sm"><span class="input-group-text">$</span>
+              <input type="number" name="renewal_fee" step="0.01" class="form-control" value="{{ owner.renewal_fee or '' }}"></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Monthly Mgmt</label>
+              <div class="input-group input-group-sm"><span class="input-group-text">$</span>
+              <input type="number" name="monthly_mgmt_fee" step="0.01" class="form-control" value="{{ owner.monthly_mgmt_fee or '' }}"></div>
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label">Contract Status</label>
+              <select name="contract_status" class="form-select form-select-sm">
+                {% for s in contract_statuses %}<option {% if owner.contract_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label">Insurance Status</label>
+              <select name="landlord_insurance_status" class="form-select form-select-sm">
+                {% for s in insurance_statuses %}<option {% if owner.landlord_insurance_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Insurance Expiry</label>
+              <input type="date" name="landlord_insurance_expiry" class="form-control form-control-sm" value="{{ owner.landlord_insurance_expiry.isoformat() if owner.landlord_insurance_expiry else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control form-control-sm" rows="2">{{ owner.notes or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-navy btn-sm w-100">Save Changes</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Linked properties -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-house me-2"></i>Linked Properties ({{ owner.properties|length }})</span>
+      </div>
+      <div class="card-body p-0">
+        {% if owner.properties %}
+        <div class="list-group list-group-flush">
+          {% for p in owner.properties %}
+          <a href="/properties/{{ p.id }}" class="list-group-item list-group-item-action py-2 px-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold small">{{ p.address }}</div>
+                <div class="text-muted" style="font-size:0.8rem;">{{ p.city }}, CO {{ p.zip }} · {{ p.property_type }}</div>
+              </div>
+              <div>
+                {% if p.occupancy %}
+                  {% set s = p.occupancy.status %}
+                  {% if s == 'Occupied' %}<span class="status-badge badge-occupied">{{ s }}</span>
+                  {% elif s == 'Vacant' %}<span class="status-badge badge-vacant">{{ s }}</span>
+                  {% elif s == 'Notice Given' %}<span class="status-badge badge-notice">{{ s }}</span>
+                  {% else %}<span class="status-badge badge-maintenance">{{ s }}</span>{% endif %}
+                {% endif %}
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-3 text-muted small">No properties linked yet.</div>
+        {% endif %}
+
+        {% if available_properties %}
+        <div class="p-3 border-top">
+          <form method="post" action="/owners/{{ owner.id }}/link-property" class="d-flex gap-2">
+            <select name="property_id" class="form-select form-select-sm">
+              <option value="">Link a property…</option>
+              {% for p in available_properties %}
+              <option value="{{ p.id }}">{{ p.address }}, {{ p.city }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-navy btn-sm text-nowrap">Link</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Inspections{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-clipboard-check me-2"></i>Inspections</h1>
+  <a href="/inspections/new" class="btn btn-navy"><i class="bi bi-plus-lg me-1"></i>New Inspection</a>
+</div>
+
+<!-- Summary strip -->
+<div class="row g-2 mb-3">
+  <div class="col-4">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-success fs-4">{{ passed }}</div>
+      <div class="text-muted small">Passed</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-danger fs-4">{{ failed }}</div>
+      <div class="text-muted small">Failed</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-warning fs-4">{{ pending }}</div>
+      <div class="text-muted small">Pending Review</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-6 col-sm-3">
+      <select name="property_id" class="form-select form-select-sm">
+        <option value="">All Properties</option>
+        {% for p in properties %}<option value="{{ p.id }}" {% if property_f == p.id|string %}selected{% endif %}>{{ p.address }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="type" class="form-select form-select-sm">
+        <option value="">All Types</option>
+        {% for t in inspection_types %}<option value="{{ t }}" {% if type_f == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All Statuses</option>
+        {% for s in statuses %}<option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}" placeholder="From">
+    </div>
+    <div class="col-6 col-sm-2">
+      <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}" placeholder="To">
+    </div>
+    <div class="col-6 col-sm-1 d-flex gap-1">
+      <button type="submit" class="btn btn-navy btn-sm flex-grow-1">Go</button>
+      <a href="/inspections" class="btn btn-outline-secondary btn-sm">✕</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if inspections %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Property</th>
+            <th>Type</th>
+            <th class="d-none d-md-table-cell">Inspector</th>
+            <th class="d-none d-md-table-cell">Condition</th>
+            <th>Status</th>
+            <th class="d-none d-lg-table-cell">Follow-Up</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for insp in inspections %}
+          <tr>
+            <td class="small text-nowrap">{{ insp.inspection_date|dateformat if insp.inspection_date else '—' }}</td>
+            <td class="small">
+              {% if insp.property %}
+                <a href="/properties/{{ insp.property.id }}" class="text-decoration-none text-dark">{{ insp.property.address }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td class="small">{{ insp.inspection_type or '—' }}</td>
+            <td class="d-none d-md-table-cell small">{{ insp.inspector_name or '—' }}</td>
+            <td class="d-none d-md-table-cell small">{{ insp.overall_condition or '—' }}</td>
+            <td>
+              {% set s = insp.status %}
+              {% if s == 'Passed' %}<span class="status-badge badge-passed">{{ s }}</span>
+              {% elif s == 'Failed' %}<span class="status-badge badge-failed">{{ s }}</span>
+              {% elif s == 'Pending Review' %}<span class="status-badge badge-pending">Pending</span>
+              {% elif s == 'Conditional Pass' %}<span class="status-badge badge-onhold">Conditional</span>
+              {% elif s == 'Cancelled' %}<span class="status-badge badge-cancelled">{{ s }}</span>
+              {% else %}<span class="status-badge badge-na">{{ s }}</span>{% endif %}
+            </td>
+            <td class="d-none d-lg-table-cell">
+              {% if insp.follow_up_required == 'Yes' %}
+                <span class="status-badge badge-notice">Yes</span>
+              {% else %}
+                <span class="text-muted small">No</span>
+              {% endif %}
+            </td>
+            <td><a href="/inspections/{{ insp.id }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-clipboard fs-1 d-block mb-3 opacity-40"></i>
+      <p class="mb-3">No inspections found.</p>
+      <a href="/inspections/new" class="btn btn-navy">Log First Inspection</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+  <div class="d-flex gap-2">
+    <a href="/properties/add" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Property</a>
+    <a href="/work-orders/new" class="btn btn-outline-secondary btn-sm"><i class="bi bi-tools me-1"></i>New WO</a>
+    <a href="/inspections/new" class="btn btn-outline-secondary btn-sm"><i class="bi bi-clipboard-plus me-1"></i>Inspection</a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-lg-2">
+    <a href="/properties" class="text-decoration-none">
+      <div class="kpi-card kpi-navy">
+        <div class="kpi-label"><i class="bi bi-house me-1"></i>Total Properties</div>
+        <div class="kpi-value">{{ total_properties }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <a href="/properties?status=Occupied" class="text-decoration-none">
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label"><i class="bi bi-check-circle me-1"></i>Occupied</div>
+        <div class="kpi-value">{{ occupied_pct }}%</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <a href="/properties?status=Vacant" class="text-decoration-none">
+      <div class="kpi-card kpi-red">
+        <div class="kpi-label"><i class="bi bi-door-open me-1"></i>Vacant</div>
+        <div class="kpi-value">{{ vacant }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <a href="/work-orders" class="text-decoration-none">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-label"><i class="bi bi-tools me-1"></i>Open WOs</div>
+        <div class="kpi-value">{{ open_wo }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <a href="/sprinkler?repair_needed=Yes" class="text-decoration-none">
+      <div class="kpi-card kpi-orange">
+        <div class="kpi-label"><i class="bi bi-droplet me-1"></i>Repairs Needed</div>
+        <div class="kpi-value">{{ repairs_needed }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-lg-2">
+    <a href="/inspections?status=Pending+Review" class="text-decoration-none">
+      <div class="kpi-card kpi-teal">
+        <div class="kpi-label"><i class="bi bi-clipboard-check me-1"></i>Inspections Due</div>
+        <div class="kpi-value">{{ inspections_due }}</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- Charts + Activity -->
+<div class="row g-3 mb-3">
+  <!-- WO Cost Chart -->
+  <div class="col-12 col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bar-chart me-2"></i>Work Order Costs — Last 6 Months</span>
+      </div>
+      <div class="card-body" style="height:240px;">
+        <canvas id="woChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="col-12 col-lg-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-lightning me-2"></i>Quick Actions</div>
+      <div class="card-body d-flex flex-column gap-2">
+        <a href="/properties/add" class="btn btn-navy w-100 text-start">
+          <i class="bi bi-house-add me-2"></i>Add New Property
+        </a>
+        <a href="/work-orders/new" class="btn btn-outline-primary w-100 text-start">
+          <i class="bi bi-plus-circle me-2"></i>Create Work Order
+        </a>
+        <a href="/inspections/new" class="btn btn-outline-secondary w-100 text-start">
+          <i class="bi bi-clipboard-plus me-2"></i>Log Inspection
+        </a>
+        <a href="/owners/new" class="btn btn-outline-secondary w-100 text-start">
+          <i class="bi bi-person-plus me-2"></i>Add Owner
+        </a>
+        <a href="/sprinkler" class="btn btn-outline-info w-100 text-start">
+          <i class="bi bi-droplet me-2"></i>Sprinkler Overview
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row g-3">
+  <!-- Recent Work Orders -->
+  <div class="col-12 col-md-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-tools me-2"></i>Recent Work Orders</span>
+        <a href="/work-orders" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_wos %}
+          <div class="list-group list-group-flush">
+            {% for wo in recent_wos %}
+            <a href="/work-orders/{{ wo.id }}" class="list-group-item list-group-item-action py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1 me-2">
+                  <div class="fw-semibold text-truncate" style="max-width:220px;">
+                    <span class="text-muted small me-1">{{ wo.wo_number }}</span>
+                    {{ wo.property.address if wo.property else '—' }}
+                  </div>
+                  <div class="text-muted small text-truncate">{{ wo.description[:60] ~ '…' if wo.description and wo.description|length > 60 else wo.description }}</div>
+                </div>
+                <div class="text-end flex-shrink-0">
+                  {% set s = wo.status %}
+                  {% if s == 'Completed' %}<span class="status-badge badge-completed">{{ s }}</span>
+                  {% elif s == 'Open' %}<span class="status-badge badge-open">{{ s }}</span>
+                  {% elif s == 'Assigned' %}<span class="status-badge badge-assigned">{{ s }}</span>
+                  {% elif s == 'In Progress' %}<span class="status-badge badge-inprogress">{{ s }}</span>
+                  {% elif s == 'On Hold' %}<span class="status-badge badge-onhold">{{ s }}</span>
+                  {% elif s == 'Cancelled' %}<span class="status-badge badge-cancelled">{{ s }}</span>
+                  {% else %}<span class="status-badge badge-pending">{{ s }}</span>{% endif %}
+                </div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2"></i>No work orders yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Inspections -->
+  <div class="col-12 col-md-5">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clipboard-check me-2"></i>Recent Inspections</span>
+        <a href="/inspections" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_inspections %}
+          <div class="list-group list-group-flush">
+            {% for insp in recent_inspections %}
+            <a href="/inspections/{{ insp.id }}" class="list-group-item list-group-item-action py-2 px-3">
+              <div class="fw-semibold small text-truncate">{{ insp.property.address if insp.property else '—' }}</div>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <span class="text-muted small">{{ insp.inspection_type }} · {{ insp.inspection_date|dateformat if insp.inspection_date else '—' }}</span>
+                {% set s = insp.status %}
+                {% if s == 'Passed' %}<span class="status-badge badge-passed">{{ s }}</span>
+                {% elif s == 'Failed' %}<span class="status-badge badge-failed">{{ s }}</span>
+                {% elif s == 'Pending Review' %}<span class="status-badge badge-pending">{{ s }}</span>
+                {% elif s == 'Cancelled' %}<span class="status-badge badge-cancelled">{{ s }}</span>
+                {% else %}<span class="status-badge badge-na">{{ s }}</span>{% endif %}
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted"><i class="bi bi-clipboard fs-3 d-block mb-2"></i>No inspections yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  initWoChart(
+    {{ monthly_labels | tojson }},
+    {{ monthly_costs | tojson }}
+  );
+</script>
+{% endblock %}

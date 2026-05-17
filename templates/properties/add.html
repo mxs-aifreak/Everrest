@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}Add Property{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-house-add me-2"></i>Add New Property</h1>
+  <a href="/properties" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+</div>
+
+<!-- Step indicator -->
+<div class="step-indicator mb-4">
+  {% for label in ['Property Info', 'Owner', 'Occupancy', 'Sprinkler', 'Review'] %}
+  <div class="step-dot" id="dot-{{ loop.index }}">
+    <div class="dot">{{ loop.index }}</div>
+    <div class="label d-none d-sm-block">{{ label }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form id="multiStepForm" method="post" action="/properties/add">
+
+      <!-- Step 1: Property Info -->
+      <div class="form-step">
+        <h5 class="mb-3 text-navy fw-bold">Step 1 — Property Info</h5>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Street Address *</label>
+            <input type="text" name="address" class="form-control" required placeholder="123 Main St">
+          </div>
+          <div class="col-8">
+            <label class="form-label">City *</label>
+            <input type="text" name="city" class="form-control" required placeholder="Fort Collins">
+          </div>
+          <div class="col-4">
+            <label class="form-label">ZIP</label>
+            <input type="text" name="zip" class="form-control" placeholder="80525">
+          </div>
+          <div class="col-6">
+            <label class="form-label">State</label>
+            <input type="text" name="state" class="form-control" value="CO" readonly>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Property Type</label>
+            <select name="property_type" class="form-select">
+              {% for t in property_types %}<option>{{ t }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="mt-4 d-flex justify-content-end">
+          <button type="button" class="btn btn-navy" data-next>Next <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- Step 2: Owner -->
+      <div class="form-step d-none">
+        <h5 class="mb-3 text-navy fw-bold">Step 2 — Owner</h5>
+        <div class="mb-3">
+          <label class="form-label">Select Existing Owner</label>
+          <select name="owner_id" class="form-select" id="ownerSelect">
+            <option value="">— No owner yet —</option>
+            <option value="new">+ Add New Owner</option>
+            {% for o in owners %}
+              <option value="{{ o.id }}">{{ o.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="newOwnerFields" class="d-none">
+          <hr>
+          <p class="text-muted small mb-3">New Owner Details</p>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Owner Name</label>
+              <input type="text" name="new_owner_name" class="form-control" placeholder="Full name">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Phone</label>
+              <input type="tel" name="new_owner_phone" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Email</label>
+              <input type="email" name="new_owner_email" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" data-prev><i class="bi bi-arrow-left me-1"></i>Back</button>
+          <button type="button" class="btn btn-navy" data-next>Next <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- Step 3: Occupancy -->
+      <div class="form-step d-none">
+        <h5 class="mb-3 text-navy fw-bold">Step 3 — Occupancy</h5>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Occupancy Status</label>
+            <select name="occ_status" class="form-select">
+              {% for s in occupancy_statuses %}<option>{{ s }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label">Tenant Name</label>
+            <input type="text" name="tenant_name" class="form-control">
+          </div>
+          <div class="col-6 col-sm-3">
+            <label class="form-label">Tenant Phone</label>
+            <input type="tel" name="tenant_phone" class="form-control">
+          </div>
+          <div class="col-6 col-sm-3">
+            <label class="form-label">Tenant Email</label>
+            <input type="email" name="tenant_email" class="form-control">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Monthly Rent</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="rent_amount" class="form-control" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Security Deposit</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" name="security_deposit" class="form-control" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Lease Start</label>
+            <input type="date" name="lease_start" class="form-control">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Lease End</label>
+            <input type="date" name="lease_end" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea name="occ_notes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="mt-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" data-prev><i class="bi bi-arrow-left me-1"></i>Back</button>
+          <button type="button" class="btn btn-navy" data-next>Next <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- Step 4: Sprinkler -->
+      <div class="form-step d-none">
+        <h5 class="mb-3 text-navy fw-bold">Step 4 — Sprinkler System</h5>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Has Sprinkler System?</label>
+            <select name="has_sprinkler" id="has_sprinkler" class="form-select">
+              {% for s in sprinkler_yes_no %}<option>{{ s }}</option>{% endfor %}
+            </select>
+          </div>
+          <div id="sprinklerFields" class="col-12">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label">Controller Brand</label>
+                <select name="controller_brand" class="form-select">
+                  <option value="">— Unknown —</option>
+                  {% for b in controller_brands %}<option>{{ b }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Controller Model</label>
+                <input type="text" name="controller_model" class="form-control" placeholder="e.g. ST8I-WIFI">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Control Method</label>
+                <select name="control_method" class="form-select">
+                  <option value="">— Unknown —</option>
+                  {% for m in control_methods %}<option>{{ m }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Shutoff Valve Location</label>
+                <select name="shutoff_valve_location" class="form-select">
+                  <option value="">— Unknown —</option>
+                  {% for loc in shutoff_locations %}<option>{{ loc }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" data-prev><i class="bi bi-arrow-left me-1"></i>Back</button>
+          <button type="button" class="btn btn-navy" data-next>Review <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- Step 5: Review & Save -->
+      <div class="form-step d-none">
+        <h5 class="mb-3 text-navy fw-bold">Step 5 — Review & Save</h5>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>Review the information above in each step, then click <strong>Save Property</strong> to create the record.
+        </div>
+        <p class="text-muted small">You can edit all fields after saving from the property detail page.</p>
+        <input type="hidden" name="step" value="5">
+        <div class="mt-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" data-prev><i class="bi bi-arrow-left me-1"></i>Back</button>
+          <button type="submit" class="btn btn-success btn-lg px-4">
+            <i class="bi bi-check-circle me-2"></i>Save Property
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Show/hide new owner fields
+  document.getElementById('ownerSelect').addEventListener('change', function() {
+    document.getElementById('newOwnerFields').classList.toggle('d-none', this.value !== 'new');
+  });
+</script>
+{% endblock %}

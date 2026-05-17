@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if wo else 'New' }} Work Order{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-tools me-2"></i>{{ 'Edit Work Order' if wo else 'New Work Order' }}</h1>
+  <a href="/work-orders" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form method="post" action="{{ '/work-orders/' + wo.id|string + '/edit' if wo else '/work-orders/new' }}">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Property</label>
+          <select name="property_id" id="property_id" class="form-select">
+            <option value="">— Select Property —</option>
+            {% for p in properties %}
+              <option value="{{ p.id }}" {% if wo and wo.property_id == p.id %}selected{% endif %}>{{ p.address }}, {{ p.city }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Owner</label>
+          <select name="owner_id" id="owner_id" class="form-select">
+            <option value="">— Select Owner —</option>
+            {% for o in owners %}
+              <option value="{{ o.id }}" {% if wo and wo.owner_id == o.id %}selected{% endif %}>{{ o.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Date Submitted</label>
+          <input type="date" name="date_submitted" class="form-control" value="{{ wo.date_submitted.isoformat() if wo and wo.date_submitted else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Category</label>
+          <select name="category" class="form-select">
+            {% for c in categories %}<option {% if wo and wo.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Priority</label>
+          <select name="priority" class="form-select">
+            {% for p in priorities %}<option {% if wo and wo.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            {% for s in statuses %}<option {% if wo and wo.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Description *</label>
+          <textarea name="description" class="form-control" rows="3" required placeholder="Describe the issue or task…">{{ wo.description if wo else '' }}</textarea>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Vendor Name</label>
+          <input type="text" name="vendor_name" class="form-control" value="{{ wo.vendor_name if wo else '' }}">
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Vendor Phone</label>
+          <input type="tel" name="vendor_phone" class="form-control" value="{{ wo.vendor_phone if wo else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Date Assigned</label>
+          <input type="date" name="date_assigned" class="form-control" value="{{ wo.date_assigned.isoformat() if wo and wo.date_assigned else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Target Completion</label>
+          <input type="date" name="target_completion" class="form-control" value="{{ wo.target_completion.isoformat() if wo and wo.target_completion else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Date Completed</label>
+          <input type="date" name="date_completed" class="form-control" value="{{ wo.date_completed.isoformat() if wo and wo.date_completed else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Invoice Status</label>
+          <select name="invoice_status" class="form-select">
+            {% for s in invoice_statuses %}<option {% if wo and wo.invoice_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Estimated Cost</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" name="estimated_cost" class="form-control" step="0.01" value="{{ wo.estimated_cost if wo else '' }}">
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Actual Cost</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" name="actual_cost" class="form-control" step="0.01" value="{{ wo.actual_cost if wo else '' }}">
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Invoice Number</label>
+          <input type="text" name="invoice_number" class="form-control" value="{{ wo.invoice_number if wo else '' }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="2">{{ wo.notes if wo else '' }}</textarea>
+        </div>
+      </div>
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-navy px-4">
+          <i class="bi bi-check-circle me-1"></i>{{ 'Update Work Order' if wo else 'Create Work Order' }}
+        </button>
+        <a href="/work-orders" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

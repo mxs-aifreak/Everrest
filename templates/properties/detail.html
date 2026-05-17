@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+{% block title %}{{ prop.address }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-house me-2"></i>{{ prop.address }}</h1>
+    <div class="text-muted small">{{ prop.city }}, {{ prop.state }} {{ prop.zip }} · {{ prop.property_type }}
+      {% if prop.google_maps_url %}
+        · <a href="{{ prop.google_maps_url }}" target="_blank" class="maps-link"><i class="bi bi-map me-1"></i>View Map</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/properties" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <form method="post" action="/properties/{{ prop.id }}/delete" class="d-inline">
+      <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this property and all related records? This cannot be undone.">
+        <i class="bi bi-trash"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="propTabs">
+  {% for t, label, icon in [('overview','Overview','house'), ('sprinkler','Sprinkler','droplet'), ('workorders','Work Orders','tools'), ('inspections','Inspections','clipboard-check'), ('owners','Owners','people')] %}
+  <li class="nav-item">
+    <a class="nav-link {% if tab == t %}active{% endif %}" href="?tab={{ t }}">
+      <i class="bi bi-{{ icon }} me-1"></i><span class="d-none d-sm-inline">{{ label }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- ── Tab: Overview ──────────────────────────────────── -->
+{% if tab == 'overview' or not tab %}
+<div class="row g-3">
+  <!-- Property Info -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-house me-2"></i>Property Info</span>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editPropForm">Edit</button>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Address</dt><dd class="col-7">{{ prop.address }}</dd>
+          <dt class="col-5 text-muted">City</dt><dd class="col-7">{{ prop.city }}</dd>
+          <dt class="col-5 text-muted">State / ZIP</dt><dd class="col-7">{{ prop.state }} {{ prop.zip }}</dd>
+          <dt class="col-5 text-muted">Type</dt><dd class="col-7">{{ prop.property_type or '—' }}</dd>
+          <dt class="col-5 text-muted">Added</dt><dd class="col-7">{{ prop.created_at.strftime('%b %d, %Y') if prop.created_at else '—' }}</dd>
+        </dl>
+        <div class="collapse mt-3" id="editPropForm">
+          <hr>
+          <form method="post" action="/properties/{{ prop.id }}/edit">
+            <div class="row g-2">
+              <div class="col-12"><input type="text" name="address" class="form-control form-control-sm" value="{{ prop.address }}" placeholder="Address"></div>
+              <div class="col-8"><input type="text" name="city" class="form-control form-control-sm" value="{{ prop.city }}" placeholder="City"></div>
+              <div class="col-4"><input type="text" name="zip" class="form-control form-control-sm" value="{{ prop.zip or '' }}" placeholder="ZIP"></div>
+              <div class="col-6">
+                <select name="property_type" class="form-select form-select-sm">
+                  {% for t in property_types %}<option {% if prop.property_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-6"><input type="text" name="state" class="form-control form-control-sm" value="{{ prop.state }}" readonly></div>
+              <div class="col-12"><button type="submit" class="btn btn-navy btn-sm w-100">Save Changes</button></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Occupancy -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-person-check me-2"></i>Occupancy</span>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editOccForm">Edit</button>
+      </div>
+      <div class="card-body">
+        {% set occ = prop.occupancy %}
+        {% if occ %}
+          {% set s = occ.status %}
+          <div class="mb-2">
+            {% if s == 'Occupied' %}<span class="status-badge badge-occupied">{{ s }}</span>
+            {% elif s == 'Vacant' %}<span class="status-badge badge-vacant">{{ s }}</span>
+            {% elif s == 'Notice Given' %}<span class="status-badge badge-notice">{{ s }}</span>
+            {% else %}<span class="status-badge badge-maintenance">{{ s }}</span>{% endif %}
+          </div>
+          <dl class="row mb-0 small">
+            <dt class="col-5 text-muted">Tenant</dt><dd class="col-7">{{ occ.tenant_name or '—' }}</dd>
+            <dt class="col-5 text-muted">Phone</dt><dd class="col-7">{{ occ.tenant_phone or '—' }}</dd>
+            <dt class="col-5 text-muted">Email</dt><dd class="col-7 text-truncate">{{ occ.tenant_email or '—' }}</dd>
+            <dt class="col-5 text-muted">Rent</dt><dd class="col-7">{{ occ.rent_amount | currency }}/mo</dd>
+            <dt class="col-5 text-muted">Deposit</dt><dd class="col-7">{{ occ.security_deposit | currency }}</dd>
+            <dt class="col-5 text-muted">Lease</dt><dd class="col-7">{{ occ.lease_start|dateformat if occ.lease_start else '—' }} → {{ occ.lease_end|dateformat if occ.lease_end else '—' }}</dd>
+          </dl>
+          {% if occ.notes %}<p class="mt-2 mb-0 text-muted small fst-italic">{{ occ.notes }}</p>{% endif %}
+        {% else %}
+          <p class="text-muted small">No occupancy record.</p>
+        {% endif %}
+        <div class="collapse mt-3" id="editOccForm">
+          <hr>
+          <form method="post" action="/properties/{{ prop.id }}/occupancy/edit">
+            <div class="row g-2">
+              <div class="col-12">
+                <select name="status" class="form-select form-select-sm">
+                  {% for s in occupancy_statuses %}<option {% if occ and occ.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-12"><input type="text" name="tenant_name" class="form-control form-control-sm" value="{{ occ.tenant_name if occ else '' }}" placeholder="Tenant Name"></div>
+              <div class="col-6"><input type="tel" name="tenant_phone" class="form-control form-control-sm" value="{{ occ.tenant_phone if occ else '' }}" placeholder="Phone"></div>
+              <div class="col-6"><input type="email" name="tenant_email" class="form-control form-control-sm" value="{{ occ.tenant_email if occ else '' }}" placeholder="Email"></div>
+              <div class="col-6">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">$</span>
+                  <input type="number" name="rent_amount" step="0.01" class="form-control" value="{{ occ.rent_amount if occ else '' }}" placeholder="Rent">
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">$</span>
+                  <input type="number" name="security_deposit" step="0.01" class="form-control" value="{{ occ.security_deposit if occ else '' }}" placeholder="Deposit">
+                </div>
+              </div>
+              <div class="col-6"><input type="date" name="lease_start" class="form-control form-control-sm" value="{{ occ.lease_start.isoformat() if occ and occ.lease_start else '' }}"></div>
+              <div class="col-6"><input type="date" name="lease_end" class="form-control form-control-sm" value="{{ occ.lease_end.isoformat() if occ and occ.lease_end else '' }}"></div>
+              <div class="col-12"><textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Notes">{{ occ.notes if occ else '' }}</textarea></div>
+              <div class="col-12"><button type="submit" class="btn btn-navy btn-sm w-100">Save Occupancy</button></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Tab: Sprinkler ─────────────────────────────────── -->
+{% if tab == 'sprinkler' %}
+{% set spr = prop.sprinkler %}
+<div class="card">
+  <div class="card-header"><i class="bi bi-droplet me-2"></i>Sprinkler System — {{ prop.address }}</div>
+  <div class="card-body">
+    <form method="post" action="/properties/{{ prop.id }}/sprinkler/edit">
+      <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <label class="form-label">Has Sprinkler</label>
+          <select name="has_sprinkler" id="has_sprinkler" class="form-select form-select-sm">
+            {% for s in sprinkler_yes_no %}<option {% if spr and spr.has_sprinkler == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div id="sprinklerFields" class="col-12">
+          <div class="row g-3">
+            <div class="col-6 col-md-3">
+              <label class="form-label">Controller Brand</label>
+              <select name="controller_brand" class="form-select form-select-sm">
+                <option value="">— Unknown —</option>
+                {% for b in controller_brands %}<option {% if spr and spr.controller_brand == b %}selected{% endif %}>{{ b }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Controller Model</label>
+              <input type="text" name="controller_model" class="form-control form-control-sm" value="{{ spr.controller_model if spr else '' }}">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Control Method</label>
+              <select name="control_method" class="form-select form-select-sm">
+                <option value="">— Unknown —</option>
+                {% for m in control_methods %}<option {% if spr and spr.control_method == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Shutoff Valve Location</label>
+              <select name="shutoff_valve_location" class="form-select form-select-sm">
+                <option value="">— Unknown —</option>
+                {% for loc in shutoff_locations %}<option {% if spr and spr.shutoff_valve_location == loc %}selected{% endif %}>{{ loc }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">System Working</label>
+              <select name="system_working" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for s in system_working %}<option {% if spr and spr.system_working == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Backflow Valve</label>
+              <select name="backflow_valve_status" class="form-select form-select-sm">
+                {% for s in backflow_statuses %}<option {% if spr and spr.backflow_valve_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <hr class="my-1">
+            <div class="col-6 col-md-3">
+              <label class="form-label">Fall Blowout Status</label>
+              <select name="fall_blowout_status" class="form-select form-select-sm">
+                {% for s in blowout_statuses %}<option {% if spr and spr.fall_blowout_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Blowout Date</label>
+              <input type="date" name="fall_blowout_date" class="form-control form-control-sm" value="{{ spr.fall_blowout_date.isoformat() if spr and spr.fall_blowout_date else '' }}">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Blowout Vendor</label>
+              <input type="text" name="blowout_vendor" class="form-control form-control-sm" value="{{ spr.blowout_vendor if spr else '' }}">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Spring Turn-On Status</label>
+              <select name="spring_turnon_status" class="form-select form-select-sm">
+                {% for s in turnon_statuses %}<option {% if spr and spr.spring_turnon_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Turn-On Date</label>
+              <input type="date" name="spring_turnon_date" class="form-control form-control-sm" value="{{ spr.spring_turnon_date.isoformat() if spr and spr.spring_turnon_date else '' }}">
+            </div>
+            <hr class="my-1">
+            <div class="col-12">
+              <label class="form-label">Issue Details</label>
+              <textarea name="issue_details" class="form-control form-control-sm" rows="2">{{ spr.issue_details if spr else '' }}</textarea>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Repair Needed</label>
+              <select name="repair_needed" id="repair_needed" class="form-select form-select-sm">
+                <option value="No" {% if not spr or spr.repair_needed != 'Yes' %}selected{% endif %}>No</option>
+                <option value="Yes" {% if spr and spr.repair_needed == 'Yes' %}selected{% endif %}>Yes</option>
+              </select>
+            </div>
+            <div id="repairFields" class="col-12 {% if not spr or spr.repair_needed != 'Yes' %}d-none{% endif %}">
+              <div class="row g-2">
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Repair Status</label>
+                  <select name="repair_status" class="form-select form-select-sm">
+                    {% for s in repair_statuses %}<option {% if spr and spr.repair_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Repair Date</label>
+                  <input type="date" name="repair_date" class="form-control form-control-sm" value="{{ spr.repair_date.isoformat() if spr and spr.repair_date else '' }}">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Repair Vendor</label>
+                  <input type="text" name="repair_vendor" class="form-control form-control-sm" value="{{ spr.repair_vendor if spr else '' }}">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label">Repair Cost</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">$</span>
+                    <input type="number" name="repair_cost" step="0.01" class="form-control" value="{{ spr.repair_cost if spr else '' }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control form-control-sm" rows="2">{{ spr.notes if spr else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button type="submit" class="btn btn-navy">Save Sprinkler Record</button>
+        {% if spr and spr.linked_wo_id %}
+          <a href="/work-orders/{{ spr.linked_wo_id }}" class="btn btn-outline-secondary ms-2">
+            <i class="bi bi-tools me-1"></i>View Linked WO
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Tab: Work Orders ───────────────────────────────── -->
+{% if tab == 'workorders' %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="mb-0 text-muted">Work Orders for this property</h6>
+  <a href="/work-orders/new?property_id={{ prop.id }}" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>New WO</a>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    {% if prop.work_orders %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>WO#</th><th>Category</th><th>Status</th><th>Priority</th><th>Cost</th><th></th></tr></thead>
+        <tbody>
+          {% for wo in prop.work_orders | sort(attribute='id', reverse=True) %}
+          <tr>
+            <td><span class="text-muted small">{{ wo.wo_number }}</span></td>
+            <td class="small">{{ wo.category }}</td>
+            <td>
+              {% set s = wo.status %}
+              {% if s == 'Completed' %}<span class="status-badge badge-completed">{{ s }}</span>
+              {% elif s == 'Open' %}<span class="status-badge badge-open">{{ s }}</span>
+              {% elif s == 'Assigned' %}<span class="status-badge badge-assigned">{{ s }}</span>
+              {% elif s == 'In Progress' %}<span class="status-badge badge-inprogress">{{ s }}</span>
+              {% else %}<span class="status-badge badge-pending">{{ s }}</span>{% endif %}
+            </td>
+            <td>
+              {% set p = wo.priority %}
+              {% if p == 'Critical' %}<span class="status-badge badge-critical">{{ p }}</span>
+              {% elif p == 'High' %}<span class="status-badge badge-high">{{ p }}</span>
+              {% elif p == 'Medium' %}<span class="status-badge badge-medium">{{ p }}</span>
+              {% else %}<span class="status-badge badge-low">{{ p }}</span>{% endif %}
+            </td>
+            <td class="small">{{ wo.actual_cost | currency }}</td>
+            <td><a href="/work-orders/{{ wo.id }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted"><i class="bi bi-tools fs-2 d-block mb-2 opacity-40"></i>No work orders for this property.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Tab: Inspections ───────────────────────────────── -->
+{% if tab == 'inspections' %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="mb-0 text-muted">Inspections for this property</h6>
+  <a href="/inspections/new?property_id={{ prop.id }}" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>New Inspection</a>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    {% if prop.inspections %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Condition</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for insp in prop.inspections | sort(attribute='id', reverse=True) %}
+          <tr>
+            <td class="small">{{ insp.inspection_date|dateformat if insp.inspection_date else '—' }}</td>
+            <td class="small">{{ insp.inspection_type }}</td>
+            <td class="small">{{ insp.inspector_name or '—' }}</td>
+            <td class="small">{{ insp.overall_condition or '—' }}</td>
+            <td>
+              {% set s = insp.status %}
+              {% if s == 'Passed' %}<span class="status-badge badge-passed">{{ s }}</span>
+              {% elif s == 'Failed' %}<span class="status-badge badge-failed">{{ s }}</span>
+              {% elif s == 'Pending Review' %}<span class="status-badge badge-pending">{{ s }}</span>
+              {% else %}<span class="status-badge badge-na">{{ s }}</span>{% endif %}
+            </td>
+            <td><a href="/inspections/{{ insp.id }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted"><i class="bi bi-clipboard fs-2 d-block mb-2 opacity-40"></i>No inspections for this property.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Tab: Owners ────────────────────────────────────── -->
+{% if tab == 'owners' %}
+<div class="row g-3">
+  {% for po in prop.property_owners %}
+  {% set o = po.owner %}
+  <div class="col-12 col-md-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-person me-2"></i><a href="/owners/{{ o.id }}" class="text-decoration-none">{{ o.name }}</a></span>
+        <form method="post" action="/properties/{{ prop.id }}/owner/{{ o.id }}/remove">
+          <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Remove this owner from the property?"><i class="bi bi-x"></i></button>
+        </form>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Phone</dt><dd class="col-7">{{ o.phone or '—' }}</dd>
+          <dt class="col-5 text-muted">Email</dt><dd class="col-7 text-truncate">{{ o.email or '—' }}</dd>
+          <dt class="col-5 text-muted">Contract</dt>
+          <dd class="col-7">
+            {% if o.contract_status == 'Signed' %}<span class="status-badge badge-signed">Signed</span>
+            {% elif o.contract_status == 'Sent for Signature' %}<span class="status-badge badge-sent">Sent</span>
+            {% else %}<span class="status-badge badge-notsent">Not Started</span>{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Insurance</dt>
+          <dd class="col-7">
+            {% if o.landlord_insurance_status == 'Active' %}<span class="status-badge badge-active">Active</span>
+            {% elif o.landlord_insurance_status == 'Expired' %}<span class="status-badge badge-expired">Expired</span>
+            {% else %}<span class="status-badge badge-na">{{ o.landlord_insurance_status }}</span>{% endif %}
+            {% if o.landlord_insurance_expiry %}<span class="text-muted ms-1">(exp {{ o.landlord_insurance_expiry|dateformat }})</span>{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Mgmt Fee</dt><dd class="col-7">{{ o.monthly_mgmt_fee | currency }}/mo</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <!-- Link another owner -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-plus me-2"></i>Link Another Owner</div>
+      <div class="card-body">
+        <form method="post" action="/properties/{{ prop.id }}/owner/add" class="d-flex gap-2">
+          <select name="owner_id" class="form-select form-select-sm">
+            <option value="">Select owner…</option>
+            {% for o in owners %}
+              {% if o.id not in prop.property_owners | map(attribute='owner_id') | list %}
+              <option value="{{ o.id }}">{{ o.name }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-navy btn-sm text-nowrap">Link Owner</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}Inspection — {{ insp.property.address if insp.property else '#' + insp.id|string }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-clipboard-check me-2"></i>{{ insp.inspection_type or 'Inspection' }}</h1>
+    <div class="text-muted small">
+      {{ insp.property.address if insp.property else '—' }} ·
+      {{ insp.inspection_date|dateformat if insp.inspection_date else 'No date' }}
+      {% set s = insp.status %}·
+      {% if s == 'Passed' %}<span class="status-badge badge-passed">{{ s }}</span>
+      {% elif s == 'Failed' %}<span class="status-badge badge-failed">{{ s }}</span>
+      {% elif s == 'Pending Review' %}<span class="status-badge badge-pending">{{ s }}</span>
+      {% elif s == 'Conditional Pass' %}<span class="status-badge badge-onhold">{{ s }}</span>
+      {% else %}<span class="status-badge badge-na">{{ s or '—' }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/inspections" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <form method="post" action="/inspections/{{ insp.id }}/delete" class="d-inline">
+      <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this inspection?"><i class="bi bi-trash"></i></button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Summary panel -->
+  <div class="col-12 col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-info-circle me-2"></i>Summary</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Property</dt>
+          <dd class="col-7">{% if insp.property %}<a href="/properties/{{ insp.property.id }}">{{ insp.property.address }}</a>{% else %}—{% endif %}</dd>
+          <dt class="col-5 text-muted">Type</dt><dd class="col-7">{{ insp.inspection_type or '—' }}</dd>
+          <dt class="col-5 text-muted">Date</dt><dd class="col-7">{{ insp.inspection_date|dateformat if insp.inspection_date else '—' }}</dd>
+          <dt class="col-5 text-muted">Inspector</dt><dd class="col-7">{{ insp.inspector_name or '—' }}</dd>
+          <dt class="col-5 text-muted">Tenant Present</dt><dd class="col-7">{{ insp.tenant_present or '—' }}</dd>
+          <dt class="col-5 text-muted">Condition</dt><dd class="col-7">{{ insp.overall_condition or '—' }}</dd>
+          <dt class="col-5 text-muted">Issues Found</dt>
+          <dd class="col-7">{% if insp.issues_found == 'Yes' %}<span class="status-badge badge-failed">Yes</span>{% else %}<span class="status-badge badge-passed">No</span>{% endif %}</dd>
+          <dt class="col-5 text-muted">Photos Taken</dt><dd class="col-7">{{ insp.photos_taken or '—' }}</dd>
+          <dt class="col-5 text-muted">Report Sent</dt>
+          <dd class="col-7">{{ insp.report_sent or '—' }}{% if insp.report_sent_date %} <span class="text-muted">({{ insp.report_sent_date|dateformat }})</span>{% endif %}</dd>
+          <dt class="col-5 text-muted">Follow-Up</dt>
+          <dd class="col-7">{% if insp.follow_up_required == 'Yes' %}<span class="status-badge badge-notice">Required</span>{% else %}No{% endif %}</dd>
+        </dl>
+        {% if insp.issue_details %}
+        <hr><p class="small fw-semibold text-muted mb-1">Issues</p>
+        <p class="small mb-0">{{ insp.issue_details }}</p>
+        {% endif %}
+        {% if insp.follow_up_notes %}
+        <hr><p class="small fw-semibold text-muted mb-1">Follow-Up Notes</p>
+        <p class="small mb-0 fst-italic">{{ insp.follow_up_notes }}</p>
+        {% endif %}
+        {% if insp.notes %}
+        <hr><p class="small fw-semibold text-muted mb-1">General Notes</p>
+        <p class="small mb-0 fst-italic">{{ insp.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Area ratings -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-grid me-2"></i>Area Ratings</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for field, label in [('kitchen_rating','Kitchen'), ('bathrooms_rating','Bathrooms'),
+               ('bedrooms_rating','Bedrooms'), ('living_areas_rating','Living Areas'),
+               ('basement_rating','Basement'), ('exterior_rating','Exterior'),
+               ('garage_rating','Garage'), ('hvac_rating','HVAC'), ('plumbing_rating','Plumbing')] %}
+            <tr>
+              <td class="text-muted small ps-3">{{ label }}</td>
+              <td class="pe-3">
+                {% set r = insp|attr(field) %}
+                {% if r == 'Excellent' %}<span class="status-badge badge-passed">{{ r }}</span>
+                {% elif r == 'Good' %}<span class="status-badge badge-active">{{ r }}</span>
+                {% elif r == 'Fair' %}<span class="status-badge badge-medium">{{ r }}</span>
+                {% elif r == 'Poor' %}<span class="status-badge badge-failed">{{ r }}</span>
+                {% else %}<span class="status-badge badge-na">{{ r or 'N/A' }}</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit form -->
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-pencil me-2"></i>Edit Inspection</div>
+      <div class="card-body">
+        <form method="post" action="/inspections/{{ insp.id }}/edit">
+          <div class="row g-2">
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Property</label>
+              <select name="property_id" class="form-select form-select-sm">
+                {% for p in properties %}<option value="{{ p.id }}" {% if insp.property_id == p.id %}selected{% endif %}>{{ p.address }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="form-label">Type</label>
+              <select name="inspection_type" class="form-select form-select-sm">
+                {% for t in inspection_types %}<option {% if insp.inspection_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="form-label">Date</label>
+              <input type="date" name="inspection_date" class="form-control form-control-sm" value="{{ insp.inspection_date.isoformat() if insp.inspection_date else '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Inspector</label>
+              <input type="text" name="inspector_name" class="form-control form-control-sm" value="{{ insp.inspector_name or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Tenant Present</label>
+              <select name="tenant_present" class="form-select form-select-sm">
+                {% for v in yes_no %}<option {% if insp.tenant_present == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Overall Condition</label>
+              <select name="overall_condition" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for c in conditions %}<option {% if insp.overall_condition == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for s in statuses %}<option {% if insp.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12"><p class="text-muted small fw-semibold mb-0 mt-1">Area Ratings</p></div>
+            {% for field, label in [('kitchen_rating','Kitchen'), ('bathrooms_rating','Bathrooms'),
+               ('bedrooms_rating','Bedrooms'), ('living_areas_rating','Living Areas'),
+               ('basement_rating','Basement'), ('exterior_rating','Exterior'),
+               ('garage_rating','Garage'), ('hvac_rating','HVAC'), ('plumbing_rating','Plumbing')] %}
+            <div class="col-6 col-md-4">
+              <label class="form-label">{{ label }}</label>
+              <select name="{{ field }}" class="form-select form-select-sm">
+                {% for r in ratings %}<option {% if insp|attr(field) == r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+              </select>
+            </div>
+            {% endfor %}
+            <div class="col-6">
+              <label class="form-label">Issues Found</label>
+              <select name="issues_found" class="form-select form-select-sm">
+                {% for v in yes_no %}<option {% if insp.issues_found == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Photos Taken</label>
+              <select name="photos_taken" class="form-select form-select-sm">
+                {% for v in yes_no %}<option {% if insp.photos_taken == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Issue Details</label>
+              <textarea name="issue_details" class="form-control form-control-sm" rows="2">{{ insp.issue_details or '' }}</textarea>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Report Sent</label>
+              <select name="report_sent" class="form-select form-select-sm">
+                {% for v in yes_no %}<option {% if insp.report_sent == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Report Sent Date</label>
+              <input type="date" name="report_sent_date" class="form-control form-control-sm" value="{{ insp.report_sent_date.isoformat() if insp.report_sent_date else '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Follow-Up Required</label>
+              <select name="follow_up_required" class="form-select form-select-sm">
+                {% for v in yes_no %}<option {% if insp.follow_up_required == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Follow-Up Notes</label>
+              <input type="text" name="follow_up_notes" class="form-control form-control-sm" value="{{ insp.follow_up_notes or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control form-control-sm" rows="2">{{ insp.notes or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-navy btn-sm w-100">Save Changes</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Sprinkler Systems{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-droplet me-2"></i>Sprinkler Systems</h1>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-6 col-sm-3">
+      <select name="has_sprinkler" class="form-select form-select-sm">
+        <option value="">All (Has Sprinkler)</option>
+        {% for s in sprinkler_yes_no %}<option value="{{ s }}" {% if has_spr_f == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-3">
+      <select name="repair_needed" class="form-select form-select-sm">
+        <option value="">All (Repair Needed)</option>
+        <option value="Yes" {% if repair_f == 'Yes' %}selected{% endif %}>Repair Needed</option>
+        <option value="No" {% if repair_f == 'No' %}selected{% endif %}>No Repair</option>
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="blowout_status" class="form-select form-select-sm">
+        <option value="">All (Blowout)</option>
+        {% for s in blowout_statuses %}<option value="{{ s }}" {% if blowout_f == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="turnon_status" class="form-select form-select-sm">
+        <option value="">All (Turn-On)</option>
+        {% for s in turnon_statuses %}<option value="{{ s }}" {% if turnon_f == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-sm-2 d-flex gap-1">
+      <button type="submit" class="btn btn-navy btn-sm flex-grow-1">Filter</button>
+      <a href="/sprinkler" class="btn btn-outline-secondary btn-sm">✕</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if properties %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Has System</th>
+            <th class="d-none d-md-table-cell">Controller</th>
+            <th>Fall Blowout</th>
+            <th>Spring Turn-On</th>
+            <th class="d-none d-md-table-cell">System Working</th>
+            <th>Repair</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in properties %}
+          {% set spr = p.sprinkler %}
+          <tr>
+            <td>
+              <a href="/properties/{{ p.id }}" class="fw-semibold text-decoration-none text-dark small">{{ p.address }}</a>
+              <div class="text-muted" style="font-size:0.75rem;">{{ p.city }}</div>
+            </td>
+            <td>
+              {% if spr %}
+                {% if spr.has_sprinkler == 'Yes' %}<span class="status-badge badge-active">Yes</span>
+                {% elif spr.has_sprinkler == 'No' %}<span class="status-badge badge-na">No</span>
+                {% else %}<span class="status-badge badge-na">Unknown</span>{% endif %}
+              {% else %}<span class="status-badge badge-na">—</span>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell small">
+              {% if spr %}{{ spr.controller_brand or '—' }}{% if spr.controller_model %} <span class="text-muted">{{ spr.controller_model }}</span>{% endif %}{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if spr %}
+                {% set bs = spr.fall_blowout_status %}
+                {% if bs == 'Completed' %}<span class="status-badge badge-completed">Done</span>
+                {% elif bs == 'Scheduled' %}<span class="status-badge badge-assigned">Sched.</span>
+                {% elif bs == 'Pending' %}<span class="status-badge badge-pending">Pending</span>
+                {% elif bs and 'Skipped' in bs %}<span class="status-badge badge-na">Skipped</span>
+                {% else %}<span class="status-badge badge-na">{{ bs or '—' }}</span>{% endif %}
+                {% if spr.fall_blowout_date %}<div class="text-muted" style="font-size:0.72rem;">{{ spr.fall_blowout_date|dateformat }}</div>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if spr %}
+                {% set ts = spr.spring_turnon_status %}
+                {% if ts == 'Active' or ts == 'Turned On' %}<span class="status-badge badge-active">{{ ts }}</span>
+                {% elif ts == 'Scheduled' %}<span class="status-badge badge-assigned">Sched.</span>
+                {% elif ts == 'Pending' %}<span class="status-badge badge-pending">Pending</span>
+                {% elif ts and 'Skipped' in ts %}<span class="status-badge badge-na">Skipped</span>
+                {% else %}<span class="status-badge badge-na">{{ ts or '—' }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell">
+              {% if spr %}
+                {% set sw = spr.system_working %}
+                {% if sw == 'Yes' %}<span class="status-badge badge-passed">Yes</span>
+                {% elif sw == 'No' %}<span class="status-badge badge-failed">No</span>
+                {% elif sw == 'Partially Working' %}<span class="status-badge badge-onhold">Partial</span>
+                {% else %}<span class="status-badge badge-na">—</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if spr and spr.repair_needed == 'Yes' %}
+                <span class="status-badge badge-failed">Needed</span>
+                {% if spr.repair_status %}
+                  <div style="font-size:0.72rem;" class="text-muted">{{ spr.repair_status }}</div>
+                {% endif %}
+              {% else %}
+                <span class="status-badge badge-na">No</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/sprinkler/{{ p.id }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-droplet fs-1 d-block mb-3 opacity-40"></i>
+      <p>No properties match the current filters.</p>
+      <a href="/sprinkler" class="btn btn-outline-secondary btn-sm">Clear Filters</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Work Orders{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-tools me-2"></i>Work Orders</h1>
+  <a href="/work-orders/new" class="btn btn-navy"><i class="bi bi-plus-lg me-1"></i>New Work Order</a>
+</div>
+
+<!-- Monthly summary strip -->
+<div class="month-strip mb-3">
+  {% for m in monthly_summary %}
+  <div class="month-cell">
+    <div class="mc-month">{{ m.month }}</div>
+    <div class="mc-count">{{ m.count }}</div>
+    <div class="mc-cost">${{ '%.0f' % m.total }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-12 col-sm-3">
+      <input type="text" name="search" class="form-control form-control-sm" placeholder="Search WO#, description, vendor…" value="{{ search }}">
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All Statuses</option>
+        {% for s in statuses %}<option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="priority" class="form-select form-select-sm">
+        <option value="">All Priorities</option>
+        {% for p in priorities %}<option value="{{ p }}" {% if priority_f == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="category" class="form-select form-select-sm">
+        <option value="">All Categories</option>
+        {% for c in categories %}<option value="{{ c }}" {% if category_f == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-sm-2">
+      <select name="property_id" class="form-select form-select-sm">
+        <option value="">All Properties</option>
+        {% for p in properties %}<option value="{{ p.id }}" {% if property_f == p.id|string %}selected{% endif %}>{{ p.address }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-sm-1 d-flex gap-1">
+      <button type="submit" class="btn btn-navy btn-sm flex-grow-1">Go</button>
+      <a href="/work-orders" class="btn btn-outline-secondary btn-sm">✕</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if work_orders %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>WO #</th>
+            <th>Property</th>
+            <th class="d-none d-md-table-cell">Category</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th class="d-none d-lg-table-cell">Submitted</th>
+            <th class="d-none d-md-table-cell">Vendor</th>
+            <th class="d-none d-lg-table-cell">Cost</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for wo in work_orders %}
+          <tr>
+            <td>
+              <span class="fw-semibold small">{{ wo.wo_number }}</span>
+              {% if wo.source == 'Sprinkler' %}<span class="status-badge badge-na ms-1" style="font-size:0.68rem;">SPR</span>{% endif %}
+            </td>
+            <td class="small">{{ wo.property.address if wo.property else '—' }}</td>
+            <td class="d-none d-md-table-cell small">{{ wo.category }}</td>
+            <td>
+              {% set p = wo.priority %}
+              {% if p == 'Critical' %}<span class="status-badge badge-critical">{{ p }}</span>
+              {% elif p == 'High' %}<span class="status-badge badge-high">{{ p }}</span>
+              {% elif p == 'Medium' %}<span class="status-badge badge-medium">{{ p }}</span>
+              {% else %}<span class="status-badge badge-low">{{ p }}</span>{% endif %}
+            </td>
+            <td>
+              {% set s = wo.status %}
+              {% if s == 'Completed' %}<span class="status-badge badge-completed">{{ s }}</span>
+              {% elif s == 'Open' %}<span class="status-badge badge-open">{{ s }}</span>
+              {% elif s == 'Assigned' %}<span class="status-badge badge-assigned">{{ s }}</span>
+              {% elif s == 'In Progress' %}<span class="status-badge badge-inprogress">{{ s }}</span>
+              {% elif s == 'On Hold' %}<span class="status-badge badge-onhold">{{ s }}</span>
+              {% elif s == 'Cancelled' %}<span class="status-badge badge-cancelled">{{ s }}</span>
+              {% else %}<span class="status-badge badge-pending">{{ s }}</span>{% endif %}
+            </td>
+            <td class="d-none d-lg-table-cell small text-muted">{{ wo.date_submitted|dateformat if wo.date_submitted else '—' }}</td>
+            <td class="d-none d-md-table-cell small">{{ wo.vendor_name or '—' }}</td>
+            <td class="d-none d-lg-table-cell small">{{ wo.actual_cost | currency }}</td>
+            <td><a href="/work-orders/{{ wo.id }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-tools fs-1 d-block mb-3 opacity-40"></i>
+      <p class="mb-3">No work orders found.</p>
+      <a href="/work-orders/new" class="btn btn-navy">Create First Work Order</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
