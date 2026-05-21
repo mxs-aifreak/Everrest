@@ -24,7 +24,7 @@
 </head>
 <body>
 
-<!-- ── Navigation ─────────────────────────────────────── -->
+<!-- ── Navigation (Desktop) ──────────────────────────────── -->
 <nav class="navbar navbar-expand-lg navbar-everrest sticky-top">
   <div class="container-fluid px-3">
     <a class="navbar-brand d-flex align-items-center" href="/">
@@ -33,7 +33,8 @@
            alt="EverRest Property Management Logo">
       <span id="brand-text" style="display:none">EverRest</span>
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+    <!-- Hamburger only shown on tablets where bottom nav isn't ideal -->
+    <button class="navbar-toggler d-none d-md-block d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
@@ -86,6 +87,46 @@
       </ul>
     </div>
   </div>
+</nav>
+
+<!-- ── Bottom Navigation (Mobile only) ──────────────────── -->
+<nav class="bottom-nav d-md-none" aria-label="Mobile navigation">
+  <a href="/" class="{% if request.path == '/' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i>
+    <span>Dashboard</span>
+  </a>
+  <a href="/properties" class="{% if '/properties' in request.path %}active{% endif %}">
+    <i class="bi bi-house"></i>
+    <span>Properties</span>
+  </a>
+  <a href="/work-orders" class="{% if '/work-orders' in request.path %}active{% endif %}">
+    <i class="bi bi-tools"></i>
+    <span>Work Orders</span>
+  </a>
+  <a href="/inspections" class="{% if '/inspections' in request.path %}active{% endif %}">
+    <i class="bi bi-clipboard-check"></i>
+    <span>Inspections</span>
+  </a>
+  <a href="/sprinkler" class="{% if '/sprinkler' in request.path %}active{% endif %}">
+    <i class="bi bi-droplet"></i>
+    <span>Sprinkler</span>
+  </a>
+  <a href="/owners" class="{% if '/owners' in request.path %}active{% endif %}">
+    <i class="bi bi-people"></i>
+    <span>Owners</span>
+  </a>
+  <a href="/insurance" class="{% if '/insurance' in request.path %}active{% endif %}">
+    <i class="bi bi-shield-check"></i>
+    <span>Insurance</span>
+  </a>
+  <a href="/leases" class="{% if '/leases' in request.path %}active{% endif %}">
+    <i class="bi bi-calendar-check"></i>
+    <span>Leases</span>
+  </a>
+  <a href="/ledger" class="{% if '/ledger' in request.path %}active{% endif %}">
+    <i class="bi bi-cash-stack"></i>
+    <span>Ledger</span>
+  </a>
 </nav>
 
 <!-- ── Flash messages ─────────────────────────────────── -->

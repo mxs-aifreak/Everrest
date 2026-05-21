@@ -35,7 +35,7 @@
   <div class="d-flex gap-2">
     {% if tab == 'landlord' %}
     <a href="/insurance/landlord/add" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Landlord Policy</a>
-    {% else %}
+    {% elif tab == 'renters' %}
     <a href="/insurance/renters/add" class="btn btn-navy btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Renter's Policy</a>
     {% endif %}
   </div>
@@ -66,6 +66,126 @@
   </li>
 </ul>
 
+{% if tab == 'deposits' %}
+<!-- ── Security Deposits Tab ─────────────────────────────── -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-sm-3">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#1f618d,#2e86c1)">
+      <div class="ki-val">{{ dep_kpis.total }}</div><div class="ki-lbl">Properties</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#1a7a3f,#27ae60)">
+      <div class="ki-val">{{ dep_kpis.collected_us }}</div><div class="ki-lbl">Held by Us</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#6c3483,#9b59b6)">
+      <div class="ki-val">{{ dep_kpis.held_owner }}</div><div class="ki-lbl">Held by Owner</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="kpi-ins" style="background:linear-gradient(135deg,#b7770d,#f39c12)">
+      <div class="ki-val">{{ dep_kpis.pending }}</div><div class="ki-lbl">Pending</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th class="d-none d-md-table-cell">Tenant</th>
+            <th>Amount</th>
+            <th>Held By</th>
+            <th>Status</th>
+            <th class="d-none d-md-table-cell">Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in deposit_rows %}
+          {% set occ = row.occ %}
+          <tr>
+            <td>
+              <a href="/properties/{{ row.property.id }}" class="fw-semibold text-decoration-none text-dark" style="font-size:.88rem;">{{ row.property.address }}</a>
+              <div class="text-muted" style="font-size:.75rem;">{{ row.property.city }}</div>
+            </td>
+            <td class="d-none d-md-table-cell small text-muted">{{ occ.tenant_name if occ else '—' }}</td>
+            <td class="fw-semibold small">
+              {% if occ and occ.security_deposit %}${{ '%.2f'|format(occ.security_deposit|float) }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if occ and occ.deposit_held_by == 'Owner' %}
+                <span class="status-badge" style="background:#ede7f6;color:#6c3483;">Owner</span>
+              {% elif occ %}
+                <span class="status-badge badge-active">EverRest</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if occ %}
+                {% if occ.deposit_status == 'Collected' %}<span class="status-badge badge-active">Collected</span>
+                {% elif occ.deposit_status == 'Returned' %}<span class="status-badge badge-completed">Returned</span>
+                {% elif occ.deposit_status == 'Partial Return' %}<span class="status-badge badge-onhold">Partial</span>
+                {% else %}<span class="status-badge badge-pending">Pending</span>{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell small text-muted">{{ occ.deposit_notes if occ else '—' }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#depForm{{ row.property.id }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </td>
+          </tr>
+          <tr class="collapse" id="depForm{{ row.property.id }}">
+            <td colspan="7" class="bg-light py-2 px-3">
+              <form method="post" action="/insurance/deposits/{{ row.property.id }}/update" class="row g-2 align-items-end">
+                <div class="col-6 col-sm-3">
+                  <label class="form-label small mb-1">Deposit Amount ($)</label>
+                  <input type="number" name="security_deposit" step="0.01" class="form-control form-control-sm"
+                         value="{{ '%.2f'|format(occ.security_deposit|float) if occ and occ.security_deposit else '' }}">
+                </div>
+                <div class="col-6 col-sm-2">
+                  <label class="form-label small mb-1">Held By</label>
+                  <select name="deposit_held_by" class="form-select form-select-sm">
+                    {% for h in deposit_held_by %}
+                    <option {% if occ and occ.deposit_held_by == h %}selected{% endif %}>{{ h }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-6 col-sm-2">
+                  <label class="form-label small mb-1">Status</label>
+                  <select name="deposit_status" class="form-select form-select-sm">
+                    {% for s in deposit_statuses %}
+                    <option {% if occ and occ.deposit_status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-6 col-sm-3">
+                  <label class="form-label small mb-1">Notes</label>
+                  <input type="text" name="deposit_notes" class="form-control form-control-sm"
+                         placeholder="e.g. Owner holds in separate account"
+                         value="{{ occ.deposit_notes if occ else '' }}">
+                </div>
+                <div class="col-12 col-sm-2">
+                  <button type="submit" class="btn btn-navy btn-sm w-100">Save</button>
+                </div>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ── Renters / Landlord Tab ────────────────────────────── -->
 {% if tab == 'renters' %}
   {% set rows = renters_rows %}
   {% set kpis = renters_kpis %}
@@ -217,122 +337,5 @@
   <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#adb5bd;margin-right:4px;"></span>No policy on file</span>
 </div>
 
-{% elif tab == 'deposits' %}
-<!-- ── Security Deposits Tab ─────────────────────────────── -->
-<div class="row g-2 mb-3">
-  <div class="col-6 col-sm-3">
-    <div class="kpi-ins" style="background:linear-gradient(135deg,#1f618d,#2e86c1)">
-      <div class="ki-val">{{ dep_kpis.total }}</div><div class="ki-lbl">Properties</div>
-    </div>
-  </div>
-  <div class="col-6 col-sm-3">
-    <div class="kpi-ins" style="background:linear-gradient(135deg,#1a7a3f,#27ae60)">
-      <div class="ki-val">{{ dep_kpis.collected_us }}</div><div class="ki-lbl">Held by Us</div>
-    </div>
-  </div>
-  <div class="col-6 col-sm-3">
-    <div class="kpi-ins" style="background:linear-gradient(135deg,#6c3483,#9b59b6)">
-      <div class="ki-val">{{ dep_kpis.held_owner }}</div><div class="ki-lbl">Held by Owner</div>
-    </div>
-  </div>
-  <div class="col-6 col-sm-3">
-    <div class="kpi-ins" style="background:linear-gradient(135deg,#b7770d,#f39c12)">
-      <div class="ki-val">{{ dep_kpis.pending }}</div><div class="ki-lbl">Pending</div>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th class="d-none d-md-table-cell">Tenant</th>
-            <th>Amount</th>
-            <th>Held By</th>
-            <th>Status</th>
-            <th class="d-none d-md-table-cell">Notes</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in deposit_rows %}
-          {% set occ = row.occ %}
-          <tr>
-            <td>
-              <a href="/properties/{{ row.property.id }}" class="fw-semibold text-decoration-none text-dark" style="font-size:.88rem;">{{ row.property.address }}</a>
-              <div class="text-muted" style="font-size:.75rem;">{{ row.property.city }}</div>
-            </td>
-            <td class="d-none d-md-table-cell small text-muted">{{ occ.tenant_name if occ else '—' }}</td>
-            <td class="fw-semibold small">
-              {% if occ and occ.security_deposit %}${{ '%.2f'|format(occ.security_deposit|float) }}{% else %}<span class="text-muted">—</span>{% endif %}
-            </td>
-            <td>
-              {% if occ and occ.deposit_held_by == 'Owner' %}
-                <span class="status-badge" style="background:#ede7f6;color:#6c3483;">Owner</span>
-              {% elif occ %}
-                <span class="status-badge badge-active">EverRest</span>
-              {% else %}<span class="text-muted">—</span>{% endif %}
-            </td>
-            <td>
-              {% if occ %}
-                {% if occ.deposit_status == 'Collected' %}<span class="status-badge badge-active">Collected</span>
-                {% elif occ.deposit_status == 'Returned' %}<span class="status-badge badge-completed">Returned</span>
-                {% elif occ.deposit_status == 'Partial Return' %}<span class="status-badge badge-onhold">Partial</span>
-                {% else %}<span class="status-badge badge-pending">Pending</span>{% endif %}
-              {% else %}<span class="text-muted">—</span>{% endif %}
-            </td>
-            <td class="d-none d-md-table-cell small text-muted">{{ occ.deposit_notes if occ else '—' }}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-secondary" type="button"
-                      data-bs-toggle="collapse" data-bs-target="#depForm{{ row.property.id }}">
-                <i class="bi bi-pencil"></i>
-              </button>
-            </td>
-          </tr>
-          <tr class="collapse" id="depForm{{ row.property.id }}">
-            <td colspan="7" class="bg-light py-2 px-3">
-              <form method="post" action="/insurance/deposits/{{ row.property.id }}/update" class="row g-2 align-items-end">
-                <div class="col-6 col-sm-3">
-                  <label class="form-label small mb-1">Deposit Amount ($)</label>
-                  <input type="number" name="security_deposit" step="0.01" class="form-control form-control-sm"
-                         value="{{ '%.2f'|format(occ.security_deposit|float) if occ and occ.security_deposit else '' }}">
-                </div>
-                <div class="col-6 col-sm-2">
-                  <label class="form-label small mb-1">Held By</label>
-                  <select name="deposit_held_by" class="form-select form-select-sm">
-                    {% for h in deposit_held_by %}
-                    <option {% if occ and occ.deposit_held_by == h %}selected{% endif %}>{{ h }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-6 col-sm-2">
-                  <label class="form-label small mb-1">Status</label>
-                  <select name="deposit_status" class="form-select form-select-sm">
-                    {% for s in deposit_statuses %}
-                    <option {% if occ and occ.deposit_status == s %}selected{% endif %}>{{ s }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-6 col-sm-3">
-                  <label class="form-label small mb-1">Notes</label>
-                  <input type="text" name="deposit_notes" class="form-control form-control-sm"
-                         placeholder="e.g. Owner holds in separate account"
-                         value="{{ occ.deposit_notes if occ else '' }}">
-                </div>
-                <div class="col-12 col-sm-2">
-                  <button type="submit" class="btn btn-navy btn-sm w-100">Save</button>
-                </div>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
 {% endif %}
 {% endblock %}

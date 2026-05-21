@@ -309,21 +309,76 @@ body {
 .month-cell .mc-count { font-size: 1.1rem; font-weight: 700; color: var(--navy); }
 .month-cell .mc-cost { color: var(--green); font-weight: 600; }
 
+/* ── Bottom Navigation (Mobile) ──────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--navy);
+  z-index: 1040;
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.25);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.bottom-nav::-webkit-scrollbar { display: none; }
+.bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  padding: 8px 16px 6px;
+  min-width: 62px;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  gap: 2px;
+  transition: color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bottom-nav a i {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.bottom-nav a.active {
+  color: #fff;
+  border-top: 2px solid #fff;
+  padding-top: 6px;
+}
+.bottom-nav a:hover { color: rgba(255,255,255,0.9); }
+
 /* ── Mobile tweaks ───────────────────────────────────── */
-@media (max-width: 576px) {
-  .kpi-card { padding: 0.85rem 1rem; min-height: 80px; }
-  .kpi-card .kpi-value { font-size: 1.6rem; }
-  .page-header h1 { font-size: 1.15rem; }
+@media (max-width: 767px) {
+  /* Push content above the bottom nav */
+  .content-wrapper {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .kpi-card { padding: 0.75rem 0.85rem; min-height: 76px; }
+  .kpi-card .kpi-value { font-size: 1.5rem; }
+  .page-header h1 { font-size: 1.1rem; }
   .table th, .table td { font-size: 0.8rem; }
   .btn { font-size: 0.82rem; }
+  /* Tighter page padding on mobile */
+  .container-fluid.px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+  main.container-fluid { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
 }
 
-/* ── PWA safe area (iPhone notch) ────────────────────── */
+/* ── PWA safe area (iPhone notch / Dynamic Island) ───── */
 .navbar-everrest {
   padding-top: max(0.5rem, env(safe-area-inset-top));
   padding-left: max(0.5rem, env(safe-area-inset-left));
   padding-right: max(0.5rem, env(safe-area-inset-right));
 }
-.content-wrapper {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+/* Desktop content bottom padding (no bottom nav) */
+@media (min-width: 768px) {
+  .content-wrapper {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
 }
