@@ -73,6 +73,16 @@
             <i class="bi bi-shield-check me-1"></i>Insurance
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {% if '/leases' in request.path %}active{% endif %}" href="/leases">
+            <i class="bi bi-calendar-check me-1"></i>Leases
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if '/ledger' in request.path %}active{% endif %}" href="/ledger">
+            <i class="bi bi-cash-stack me-1"></i>Ledger
+          </a>
+        </li>
       </ul>
     </div>
   </div>

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Owner Ledger{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-cash-stack me-2"></i>Owner Ledger</h1>
+  <span class="text-muted small">Repair costs deducted from rent disbursements</span>
+</div>
+
+<!-- KPI strip -->
+<div class="row g-2 mb-3">
+  <div class="col-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-danger" style="font-size:1.6rem;">${{ '%.2f'|format(total_outstanding) }}</div>
+      <div class="text-muted small">Total Outstanding</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-navy" style="font-size:1.6rem;">{{ owners_with_balance }}</div>
+      <div class="text-muted small">Owners with Balance</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-warning" style="font-size:1.6rem;">{{ pending_count }}</div>
+      <div class="text-muted small">WOs Pending Deduction</div>
+    </div>
+  </div>
+</div>
+
+{% if buckets %}
+  {% for b in buckets %}
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-person-circle text-navy"></i>
+        <span class="fw-semibold">{{ b.owner.name if b.owner else 'Unknown Owner' }}</span>
+        {% if b.owner %}<a href="/owners/{{ b.owner.id }}" class="text-muted small ms-1"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        {% if b.pending_total > 0 %}
+        <span class="fw-bold text-danger">${{ '%.2f'|format(b.pending_total) }} outstanding</span>
+        {% endif %}
+        {% if b.deducted_total > 0 %}
+        <span class="text-success small"><i class="bi bi-check-circle me-1"></i>${{ '%.2f'|format(b.deducted_total) }} settled</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if b.pending %}
+    <div class="card-body pb-0">
+      <p class="fw-semibold text-muted small mb-2"><i class="bi bi-clock me-1"></i>Pending Deduction from Rent</p>
+      {% for wo in b.pending %}
+      <div class="border rounded p-3 mb-2" style="background:#fffbf0;">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <span class="fw-semibold">{{ wo.wo_number }}</span>
+            <span class="text-muted small ms-2">{{ wo.category }}</span><br>
+            <span class="small">{{ wo.property.address if wo.property else '—' }}</span><br>
+            <span class="text-muted small">Completed: {{ wo.date_completed|dateformat if wo.date_completed else '—' }}</span>
+            {% if wo.description %}<br><span class="text-muted small fst-italic">{{ wo.description[:80] }}{% if wo.description|length > 80 %}…{% endif %}</span>{% endif %}
+          </div>
+          <div class="text-end">
+            <div class="fw-bold text-danger fs-5">${{ '%.2f'|format(wo.actual_cost|float) }}</div>
+            <button class="btn btn-sm btn-navy mt-1" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#deductForm{{ wo.id }}">
+              <i class="bi bi-check-circle me-1"></i>Mark Deducted
+            </button>
+          </div>
+        </div>
+        <div class="collapse mt-3" id="deductForm{{ wo.id }}">
+          <form method="post" action="/ledger/wo/{{ wo.id }}/deduct" class="row g-2">
+            <div class="col-12 col-sm-4">
+              <label class="form-label small">Deduction Date</label>
+              <input type="date" name="settlement_date" class="form-control form-control-sm"
+                     value="{{ today }}">
+            </div>
+            <div class="col-12 col-sm-8">
+              <label class="form-label small">Notes (e.g. "Deducted from June disbursement")</label>
+              <input type="text" name="settlement_notes" class="form-control form-control-sm"
+                     placeholder="Which disbursement this was deducted from">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-success btn-sm">
+                <i class="bi bi-check-lg me-1"></i>Confirm Deduction of ${{ '%.2f'|format(wo.actual_cost|float) }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if b.deducted %}
+    <div class="card-body pt-2">
+      <p class="fw-semibold text-muted small mb-2 mt-2"><i class="bi bi-check-circle me-1"></i>Settled (Deducted from Rent)</p>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:.82rem;">
+          <thead><tr><th>WO #</th><th>Property</th><th>Amount</th><th>Deducted On</th><th>Notes</th><th></th></tr></thead>
+          <tbody>
+          {% for wo in b.deducted %}
+          <tr class="text-muted">
+            <td>{{ wo.wo_number }}</td>
+            <td>{{ wo.property.address if wo.property else '—' }}</td>
+            <td class="text-success fw-semibold">${{ '%.2f'|format(wo.actual_cost|float) }}</td>
+            <td>{{ wo.owner_settlement_date|dateformat if wo.owner_settlement_date else '—' }}</td>
+            <td>{{ wo.owner_settlement_notes or '—' }}</td>
+            <td>
+              <form method="post" action="/ledger/wo/{{ wo.id }}/reopen" class="d-inline">
+                <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Move back to pending"
+                        onclick="return confirm('Move back to pending?')">
+                  <i class="bi bi-arrow-counterclockwise" style="font-size:.75rem;"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not b.pending and not b.deducted %}
+    <div class="card-body text-muted small">No WOs billed.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-cash-stack fs-1 d-block mb-3 opacity-40"></i>
+    <p class="mb-2">No owner billing on file yet.</p>
+    <p class="small">When a Work Order is completed, open it and use the <strong>Owner Billing</strong> card to bill the cost to the owner.</p>
+    <a href="/work-orders" class="btn btn-outline-secondary btn-sm mt-2">Go to Work Orders</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Pass today's date to deduction forms
+document.querySelectorAll('input[name="settlement_date"]').forEach(function(el) {
+  if (!el.value) el.value = new Date().toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

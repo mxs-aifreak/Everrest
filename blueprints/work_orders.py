@@ -143,6 +143,21 @@ def edit_work_order(wo_id):
     return redirect(url_for('work_orders.work_order_detail', wo_id=wo_id))
 
 
+@work_orders_bp.route('/work-orders/<int:wo_id>/billing', methods=['POST'])
+def update_billing(wo_id):
+    wo = WorkOrder.query.get_or_404(wo_id)
+    wo.billed_to_owner = request.form.get('billed_to_owner', 'No')
+    if wo.billed_to_owner == 'Yes' and wo.owner_settlement_status == 'N/A':
+        wo.owner_settlement_status = 'Pending'
+    elif wo.billed_to_owner == 'No':
+        wo.owner_settlement_status = 'N/A'
+        wo.owner_settlement_date = None
+        wo.owner_settlement_notes = None
+    db.session.commit()
+    flash('Billing status updated.', 'success')
+    return redirect(url_for('work_orders.work_order_detail', wo_id=wo_id))
+
+
 @work_orders_bp.route('/work-orders/<int:wo_id>/delete', methods=['POST'])
 def delete_work_order(wo_id):
     wo = WorkOrder.query.get_or_404(wo_id)

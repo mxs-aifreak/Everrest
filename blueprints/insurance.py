@@ -96,11 +96,26 @@ def list_insurance():
     tab = request.args.get('tab', 'renters')
     renters_rows = _build_rows('Renters')
     landlord_rows = _build_rows('Landlord')
+    deposit_rows = _deposit_rows()
+
+    # Deposit KPIs
+    dep_kpis = {
+        'total': len(deposit_rows),
+        'collected_us': sum(1 for r in deposit_rows if r['occ'] and r['occ'].deposit_held_by == 'EverRest' and r['occ'].deposit_status == 'Collected'),
+        'held_owner': sum(1 for r in deposit_rows if r['occ'] and r['occ'].deposit_held_by == 'Owner'),
+        'pending': sum(1 for r in deposit_rows if r['occ'] and r['occ'].deposit_status == 'Pending'),
+        'returned': sum(1 for r in deposit_rows if r['occ'] and r['occ'].deposit_status in ('Returned', 'Partial Return')),
+    }
+
     return render_template('insurance/list.html',
                            renters_rows=renters_rows,
                            landlord_rows=landlord_rows,
                            renters_kpis=_kpis(renters_rows),
                            landlord_kpis=_kpis(landlord_rows),
+                           deposit_rows=deposit_rows,
+                           dep_kpis=dep_kpis,
+                           deposit_held_by=DEPOSIT_HELD_BY,
+                           deposit_statuses=DEPOSIT_STATUSES,
                            tab=tab)
 
 
@@ -232,6 +247,37 @@ def edit_landlord(ins_id):
                            owners=owners,
                            statuses=STATUSES,
                            providers=PROVIDERS_LANDLORD)
+
+
+DEPOSIT_HELD_BY = ['EverRest', 'Owner']
+DEPOSIT_STATUSES = ['Pending', 'Collected', 'Returned', 'Partial Return']
+
+
+def _deposit_rows():
+    properties = Property.query.order_by(Property.address).all()
+    occupancies = {o.property_id: o for o in Occupancy.query.all()}
+    rows = []
+    for prop in properties:
+        occ = occupancies.get(prop.id)
+        rows.append({'property': prop, 'occ': occ})
+    return rows
+
+
+@insurance_bp.route('/insurance/deposits/<int:prop_id>/update', methods=['POST'])
+def update_deposit(prop_id):
+    occ = Occupancy.query.filter_by(property_id=prop_id).first()
+    if not occ:
+        flash('No occupancy record for this property.', 'warning')
+        return redirect(url_for('insurance.list_insurance', tab='deposits'))
+    occ.security_deposit = _decimal(request.form.get('security_deposit')) or occ.security_deposit
+    occ.deposit_held_by = request.form.get('deposit_held_by', 'EverRest')
+    occ.deposit_status = request.form.get('deposit_status', 'Pending')
+    occ.deposit_returned_amount = _decimal(request.form.get('deposit_returned_amount'))
+    occ.deposit_return_date = _date(request.form.get('deposit_return_date'))
+    occ.deposit_notes = request.form.get('deposit_notes', '').strip()
+    db.session.commit()
+    flash('Security deposit updated.', 'success')
+    return redirect(url_for('insurance.list_insurance', tab='deposits'))
 
 
 @insurance_bp.route('/insurance/<int:ins_id>/delete', methods=['POST'])

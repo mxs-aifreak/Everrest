@@ -83,6 +83,16 @@ class Occupancy(db.Model):
     lease_start = db.Column(db.Date)
     lease_end = db.Column(db.Date)
     notes = db.Column(db.Text)
+    # Security deposit tracking
+    deposit_held_by = db.Column(db.String(50), default='EverRest')  # EverRest / Owner
+    deposit_status = db.Column(db.String(50), default='Pending')    # Pending / Collected / Returned / Partial Return
+    deposit_returned_amount = db.Column(db.Numeric(10, 2))
+    deposit_return_date = db.Column(db.Date)
+    deposit_notes = db.Column(db.Text)
+    # Lease renewal tracking
+    renewal_status = db.Column(db.String(50), default='Unknown')    # Unknown / Renewing / Moving Out / Negotiating
+    renewal_contacted_date = db.Column(db.Date)
+    renewal_notes = db.Column(db.Text)
 
 
 class Sprinkler(db.Model):
@@ -137,6 +147,11 @@ class WorkOrder(db.Model):
     invoice_status = db.Column(db.String(50), default='N/A')
     notes = db.Column(db.Text)
     source = db.Column(db.String(20), default='Manual')
+    # Owner billing / receivables
+    billed_to_owner = db.Column(db.String(5), default='No')
+    owner_settlement_status = db.Column(db.String(50), default='N/A')  # N/A / Pending / Deducted
+    owner_settlement_date = db.Column(db.Date)
+    owner_settlement_notes = db.Column(db.Text)
 
 
 class Insurance(db.Model):

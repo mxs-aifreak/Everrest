@@ -9,6 +9,8 @@ from blueprints.inspections import inspections_bp
 from blueprints.sprinkler import sprinkler_bp
 from blueprints.owners import owners_bp
 from blueprints.insurance import insurance_bp
+from blueprints.ledger import ledger_bp
+from blueprints.leases import leases_bp
 
 
 def create_app():
@@ -30,6 +32,8 @@ def create_app():
     app.register_blueprint(sprinkler_bp)
     app.register_blueprint(owners_bp)
     app.register_blueprint(insurance_bp)
+    app.register_blueprint(ledger_bp)
+    app.register_blueprint(leases_bp)
 
     @app.route('/')
     def dashboard():
@@ -134,6 +138,21 @@ def _run_migrations():
     migrations = [
         "ALTER TABLE sprinkler ADD COLUMN IF NOT EXISTS turnoff_status VARCHAR(50) DEFAULT 'Pending'",
         "ALTER TABLE sprinkler ADD COLUMN IF NOT EXISTS turnoff_date DATE",
+        # WorkOrder billing fields
+        "ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS billed_to_owner VARCHAR(5) DEFAULT 'No'",
+        "ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS owner_settlement_status VARCHAR(50) DEFAULT 'N/A'",
+        "ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS owner_settlement_date DATE",
+        "ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS owner_settlement_notes TEXT",
+        # Occupancy deposit fields
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS deposit_held_by VARCHAR(50) DEFAULT 'EverRest'",
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS deposit_status VARCHAR(50) DEFAULT 'Pending'",
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS deposit_returned_amount NUMERIC(10,2)",
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS deposit_return_date DATE",
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS deposit_notes TEXT",
+        # Occupancy renewal fields
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS renewal_status VARCHAR(50) DEFAULT 'Unknown'",
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS renewal_contacted_date DATE",
+        "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS renewal_notes TEXT",
     ]
     with db.engine.connect() as conn:
         for sql in migrations:

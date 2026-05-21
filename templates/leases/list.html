@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block title %}Lease Renewals{% endblock %}
+{% block extra_head %}
+<style>
+.lease-expired  { border-left: 3px solid #e74c3c; }
+.lease-critical { border-left: 3px solid #f39c12; }
+.lease-soon     { border-left: 3px solid #3498db; }
+.lease-ok       { border-left: 3px solid #27ae60; }
+.lease-no_date  { border-left: 3px solid #adb5bd; }
+.days-chip { display:inline-block; padding:.15em .55em; border-radius:12px; font-size:.75rem; font-weight:600; white-space:nowrap; }
+.days-expired  { background:#fadbd8; color:#922b21; }
+.days-critical { background:#fdebd0; color:#d35400; }
+.days-soon     { background:#d6eaf8; color:#1f618d; }
+.days-ok       { background:#d4efdf; color:#1e8449; }
+.days-none     { background:#f2f3f4; color:#7f8c8d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-calendar-check me-2"></i>Lease Renewals</h1>
+</div>
+
+<!-- KPI strip -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-sm-4 col-md-2">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-secondary" style="font-size:1.4rem;">{{ kpis.total }}</div>
+      <div class="text-muted" style="font-size:.72rem;">Total Active</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-md-2">
+    <div class="card text-center py-2" style="border-left:3px solid #e74c3c;">
+      <div class="fw-bold text-danger" style="font-size:1.4rem;">{{ kpis.expired }}</div>
+      <div class="text-muted" style="font-size:.72rem;">Expired</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-md-2">
+    <div class="card text-center py-2" style="border-left:3px solid #f39c12;">
+      <div class="fw-bold text-warning" style="font-size:1.4rem;">{{ kpis.critical }}</div>
+      <div class="text-muted" style="font-size:.72rem;">≤30 Days</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-md-2">
+    <div class="card text-center py-2" style="border-left:3px solid #3498db;">
+      <div class="fw-bold" style="font-size:1.4rem;color:#1f618d;">{{ kpis.soon }}</div>
+      <div class="text-muted" style="font-size:.72rem;">31–90 Days</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-md-2">
+    <div class="card text-center py-2" style="border-left:3px solid #27ae60;">
+      <div class="fw-bold text-success" style="font-size:1.4rem;">{{ kpis.renewing }}</div>
+      <div class="text-muted" style="font-size:.72rem;">Renewing</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-md-2">
+    <div class="card text-center py-2" style="border-left:3px solid #e74c3c;">
+      <div class="fw-bold text-danger" style="font-size:1.4rem;">{{ kpis.moving_out }}</div>
+      <div class="text-muted" style="font-size:.72rem;">Moving Out</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar mb-3">
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-end">
+    <div>
+      <label class="form-label small mb-1">Renewal Status</label>
+      <select name="renewal" class="form-select form-select-sm">
+        <option value="">All Statuses</option>
+        {% for s in renewal_statuses %}
+        <option value="{{ s }}" {% if renewal_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-navy btn-sm">Filter</button>
+    {% if renewal_filter %}<a href="/leases" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+  </form>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    {% if rows %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="width:4px;" class="p-0"></th>
+            <th>Property</th>
+            <th class="d-none d-md-table-cell">Tenant</th>
+            <th>Lease End</th>
+            <th>Days Left</th>
+            <th>Renewal Status</th>
+            <th class="d-none d-md-table-cell">Last Contacted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr class="lease-{{ row.urgency }}">
+            <td class="p-0"></td>
+            <td>
+              <a href="/properties/{{ row.property.id }}" class="fw-semibold text-decoration-none text-dark" style="font-size:.88rem;">
+                {{ row.property.address }}
+              </a>
+              <div class="text-muted" style="font-size:.75rem;">{{ row.property.city }}</div>
+            </td>
+            <td class="d-none d-md-table-cell small text-muted">{{ row.occ.tenant_name or '—' }}</td>
+            <td class="small">
+              {{ row.occ.lease_end.strftime('%b %d, %Y') if row.occ.lease_end else '—' }}
+            </td>
+            <td>
+              {% if row.days is none %}
+                <span class="days-chip days-none">No date</span>
+              {% elif row.days < 0 %}
+                <span class="days-chip days-expired">{{ row.days|abs }}d ago</span>
+              {% elif row.days <= 30 %}
+                <span class="days-chip days-critical">{{ row.days }}d left</span>
+              {% elif row.days <= 90 %}
+                <span class="days-chip days-soon">{{ row.days }}d left</span>
+              {% else %}
+                <span class="days-chip days-ok">{{ row.days }}d left</span>
+              {% endif %}
+            </td>
+            <td>
+              {% set rs = row.occ.renewal_status %}
+              {% if rs == 'Renewing' %}<span class="status-badge badge-active">Renewing</span>
+              {% elif rs == 'Moving Out' %}<span class="status-badge badge-expired">Moving Out</span>
+              {% elif rs == 'Negotiating' %}<span class="status-badge badge-pending">Negotiating</span>
+              {% else %}<span class="status-badge badge-na">Unknown</span>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell small text-muted">
+              {{ row.occ.renewal_contacted_date.strftime('%b %d, %Y') if row.occ.renewal_contacted_date else '—' }}
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#renewForm{{ row.occ.id }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </td>
+          </tr>
+          <!-- Inline update row -->
+          <tr class="collapse" id="renewForm{{ row.occ.id }}">
+            <td colspan="8" class="bg-light py-2 px-3">
+              <form method="post" action="/leases/{{ row.occ.id }}/update" class="row g-2 align-items-end">
+                <div class="col-12 col-sm-3">
+                  <label class="form-label small mb-1">Renewal Decision</label>
+                  <select name="renewal_status" class="form-select form-select-sm">
+                    {% for s in renewal_statuses %}
+                    <option {% if row.occ.renewal_status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-12 col-sm-3">
+                  <label class="form-label small mb-1">Date Contacted</label>
+                  <input type="date" name="renewal_contacted_date" class="form-control form-control-sm"
+                         value="{{ row.occ.renewal_contacted_date.isoformat() if row.occ.renewal_contacted_date else '' }}">
+                </div>
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small mb-1">Notes</label>
+                  <input type="text" name="renewal_notes" class="form-control form-control-sm"
+                         placeholder="e.g. Tenant confirmed renewal via email"
+                         value="{{ row.occ.renewal_notes or '' }}">
+                </div>
+                <div class="col-12 col-sm-2">
+                  <button type="submit" class="btn btn-navy btn-sm w-100">Save</button>
+                </div>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-calendar fs-1 d-block mb-3 opacity-40"></i>
+      <p>No active leases found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="d-flex flex-wrap gap-3 mt-3" style="font-size:.78rem;color:#6c757d;">
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e74c3c;margin-right:4px;"></span>Expired</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f39c12;margin-right:4px;"></span>Expiring ≤30 days</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3498db;margin-right:4px;"></span>Expiring 31–90 days</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#27ae60;margin-right:4px;"></span>More than 90 days</span>
+</div>
+{% endblock %}

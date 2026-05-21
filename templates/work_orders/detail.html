@@ -186,4 +186,59 @@
     </div>
   </div>
 </div>
+
+{% if wo.status == 'Completed' and wo.actual_cost %}
+<div class="card mt-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-cash-stack text-navy"></i>
+    <span class="fw-semibold">Owner Billing</span>
+    <span class="text-muted small ms-1">— deduct from rent disbursement</span>
+    <span class="ms-auto">
+      {% if wo.billed_to_owner == 'Yes' %}
+        {% if wo.owner_settlement_status == 'Deducted' %}<span class="status-badge badge-completed">Deducted from Rent</span>
+        {% else %}<span class="status-badge badge-pending">Pending Deduction</span>{% endif %}
+      {% else %}<span class="status-badge badge-na">Not Billed</span>{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    {% if wo.billed_to_owner != 'Yes' %}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <p class="mb-1 small text-muted">Bill the repair cost of <strong class="text-dark">${{ '%.2f'|format(wo.actual_cost|float) }}</strong> to the owner?</p>
+        <p class="mb-0 small text-muted">This will appear in the Owner Ledger for deduction from the next rent disbursement.</p>
+      </div>
+      <form method="post" action="/work-orders/{{ wo.id }}/billing">
+        <input type="hidden" name="billed_to_owner" value="Yes">
+        <button type="submit" class="btn btn-navy">
+          <i class="bi bi-plus-circle me-1"></i>Bill ${{ '%.2f'|format(wo.actual_cost|float) }} to Owner
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <dl class="row small mb-2">
+      <dt class="col-4 text-muted">Amount Billed</dt>
+      <dd class="col-8 fw-semibold">${{ '%.2f'|format(wo.actual_cost|float) }}</dd>
+      <dt class="col-4 text-muted">Settlement</dt>
+      <dd class="col-8">
+        {% if wo.owner_settlement_status == 'Deducted' %}
+          <span class="status-badge badge-completed">Deducted</span>
+          {% if wo.owner_settlement_date %} on {{ wo.owner_settlement_date|dateformat }}{% endif %}
+        {% else %}
+          <span class="status-badge badge-pending">Pending</span> — <a href="/ledger" class="small">View in Ledger</a>
+        {% endif %}
+      </dd>
+      {% if wo.owner_settlement_notes %}
+      <dt class="col-4 text-muted">Notes</dt><dd class="col-8">{{ wo.owner_settlement_notes }}</dd>
+      {% endif %}
+    </dl>
+    {% if wo.owner_settlement_status != 'Deducted' %}
+    <form method="post" action="/work-orders/{{ wo.id }}/billing" class="d-inline">
+      <input type="hidden" name="billed_to_owner" value="No">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Remove Billing</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}
