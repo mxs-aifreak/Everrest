@@ -23,6 +23,13 @@ TEXT_DARK   = (40, 40, 40)
 TEXT_MUTED  = (110, 110, 110)
 
 
+def _s(text, fallback='-'):
+    """Sanitize text for Helvetica (Latin-1 only). Replaces unmappable chars with '?'."""
+    if not text:
+        return fallback
+    return str(text).encode('latin-1', errors='replace').decode('latin-1')
+
+
 class EverRestPDF(FPDF):
     """Base PDF class with EverRest branding."""
 
@@ -91,27 +98,27 @@ def _build_inspection_pdf(insp):
     pdf.cell(0, 10, 'Inspection Report', ln=True, align='C')
     pdf.set_font('Helvetica', '', 10)
     pdf.set_text_color(*TEXT_MUTED)
-    pdf.cell(0, 6, f'{insp.inspection_type or "Inspection"}  ·  {prop.address if prop else "Unknown Property"}', ln=True, align='C')
+    pdf.cell(0, 6, _s(f'{insp.inspection_type or "Inspection"}  -  {prop.address if prop else "Unknown Property"}'), ln=True, align='C')
     pdf.ln(4)
 
     # ── Property Info ──
     pdf.section_title('PROPERTY INFORMATION')
-    pdf.kv_row('Address', prop.address if prop else '-', fill=True)
-    pdf.kv_row('City / State', f'{prop.city}, {prop.state}' if prop else '-')
+    pdf.kv_row('Address', _s(prop.address) if prop else '-', fill=True)
+    pdf.kv_row('City / State', _s(f'{prop.city}, {prop.state}') if prop else '-')
     if prop and prop.primary_owner:
-        pdf.kv_row('Owner', prop.primary_owner.name, fill=True)
+        pdf.kv_row('Owner', _s(prop.primary_owner.name), fill=True)
     pdf.ln(3)
 
     # ── Inspection Details ──
     pdf.section_title('INSPECTION DETAILS')
-    pdf.kv_row('Type', insp.inspection_type, fill=True)
+    pdf.kv_row('Type', _s(insp.inspection_type), fill=True)
     pdf.kv_row('Date', insp.inspection_date.strftime('%B %d, %Y') if insp.inspection_date else '-')
-    pdf.kv_row('Inspector', insp.inspector_name, fill=True)
-    pdf.kv_row('Tenant Present', insp.tenant_present or '-')
-    pdf.kv_row('Overall Condition', insp.overall_condition or '-', fill=True)
-    pdf.kv_row('Status', insp.status or '-')
-    pdf.kv_row('Issues Found', insp.issues_found or '-', fill=True)
-    pdf.kv_row('Photos Taken', insp.photos_taken or '-')
+    pdf.kv_row('Inspector', _s(insp.inspector_name), fill=True)
+    pdf.kv_row('Tenant Present', _s(insp.tenant_present), fill=False)
+    pdf.kv_row('Overall Condition', _s(insp.overall_condition), fill=True)
+    pdf.kv_row('Status', _s(insp.status))
+    pdf.kv_row('Issues Found', _s(insp.issues_found), fill=True)
+    pdf.kv_row('Photos Taken', _s(insp.photos_taken))
     pdf.ln(3)
 
     # ── Area Ratings ──
@@ -159,26 +166,26 @@ def _build_inspection_pdf(insp):
         pdf.section_title('ISSUES FOUND')
         pdf.set_font('Helvetica', '', 8.5)
         pdf.set_text_color(*TEXT_DARK)
-        pdf.multi_cell(0, 5.5, insp.issue_details or 'Issues found - no details recorded.')
+        pdf.multi_cell(0, 5.5, _s(insp.issue_details or 'Issues found - no details recorded.'))
         pdf.ln(2)
 
     # ── Follow-Up ──
     if insp.follow_up_required == 'Yes' or insp.follow_up_notes:
         pdf.section_title('FOLLOW-UP REQUIRED')
         pdf.set_font('Helvetica', '', 8.5)
-        pdf.multi_cell(0, 5.5, insp.follow_up_notes or 'Follow-up required - no notes recorded.')
+        pdf.multi_cell(0, 5.5, _s(insp.follow_up_notes or 'Follow-up required - no notes recorded.'))
         pdf.ln(2)
 
     # ── Notes ──
     if insp.notes:
         pdf.section_title('GENERAL NOTES')
         pdf.set_font('Helvetica', '', 8.5)
-        pdf.multi_cell(0, 5.5, insp.notes)
+        pdf.multi_cell(0, 5.5, _s(insp.notes))
         pdf.ln(2)
 
     # ── Report Sent ──
     pdf.section_title('REPORT STATUS')
-    pdf.kv_row('Report Sent', insp.report_sent or '-', fill=True)
+    pdf.kv_row('Report Sent', _s(insp.report_sent), fill=True)
     pdf.kv_row('Date Sent', insp.report_sent_date.strftime('%B %d, %Y') if insp.report_sent_date else '-')
 
     return bytes(pdf.output())
@@ -200,14 +207,14 @@ def _build_invoice_pdf(owner, wos):
     pdf.cell(0, 10, 'Owner Billing Invoice', ln=True, align='C')
     pdf.set_font('Helvetica', '', 10)
     pdf.set_text_color(*TEXT_MUTED)
-    pdf.cell(0, 6, f'Repair costs billed to owner  ·  {date.today().strftime("%B %d, %Y")}', ln=True, align='C')
+    pdf.cell(0, 6, f'Repair costs billed to owner  -  {date.today().strftime("%B %d, %Y")}', ln=True, align='C')
     pdf.ln(4)
 
     # ── Owner Info ──
     pdf.section_title('OWNER INFORMATION')
-    pdf.kv_row('Name',  owner.name if owner else 'Unknown', fill=True)
-    pdf.kv_row('Email', owner.email or '-')
-    pdf.kv_row('Phone', owner.phone or '-', fill=True)
+    pdf.kv_row('Name',  _s(owner.name) if owner else 'Unknown', fill=True)
+    pdf.kv_row('Email', _s(owner.email))
+    pdf.kv_row('Phone', _s(owner.phone), fill=True)
     pdf.ln(3)
 
     # ── Work Orders table ──
@@ -245,16 +252,17 @@ def _build_invoice_pdf(owner, wos):
 
         amount = float(wo.actual_cost or 0)
         status = wo.owner_settlement_status or 'Pending'
-        prop_addr = (wo.property.address[:30] + '…') if wo.property and len(wo.property.address) > 30 else (wo.property.address if wo.property else '-')
-        category  = (wo.category[:14] + '…') if wo.category and len(wo.category) > 14 else (wo.category or '-')
+        raw_addr  = wo.property.address if wo.property else '-'
+        prop_addr = _s(raw_addr[:30] + '...' if len(raw_addr) > 30 else raw_addr)
+        category  = _s(wo.category[:14] + '...' if wo.category and len(wo.category) > 14 else (wo.category or '-'))
 
         pdf.set_font('Helvetica', '', 8)
-        pdf.cell(col_wo,   5.5, wo.wo_number or '-',                                          fill=fill)
+        pdf.cell(col_wo,   5.5, _s(wo.wo_number or '-'),                                      fill=fill)
         pdf.cell(col_prop, 5.5, prop_addr,                                                     fill=fill)
         pdf.cell(col_cat,  5.5, category,                                                      fill=fill)
         pdf.cell(col_date, 5.5, wo.date_completed.strftime('%m/%d/%Y') if wo.date_completed else '-', fill=fill)
         pdf.cell(col_amt,  5.5, f'${amount:,.2f}',                                            fill=fill, align='R')
-        pdf.cell(col_stat, 5.5, status,                                                        fill=fill, align='C')
+        pdf.cell(col_stat, 5.5, _s(status),                                                    fill=fill, align='C')
         pdf.ln()
 
         if status == 'Deducted':
@@ -296,9 +304,9 @@ def _build_invoice_pdf(owner, wos):
         for wo in wos:
             if wo.description:
                 pdf.set_font('Helvetica', 'B', 8.5)
-                pdf.cell(0, 5.5, f'{wo.wo_number}  -  {wo.property.address if wo.property else ""}', ln=True)
+                pdf.cell(0, 5.5, _s(f'{wo.wo_number}  -  {wo.property.address if wo.property else ""}'), ln=True)
                 pdf.set_font('Helvetica', '', 8.5)
-                pdf.multi_cell(0, 5, wo.description)
+                pdf.multi_cell(0, 5, _s(wo.description))
                 pdf.ln(1)
 
     return bytes(pdf.output())
