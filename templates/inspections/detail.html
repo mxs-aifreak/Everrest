@@ -15,12 +15,38 @@
       {% else %}<span class="status-badge badge-na">{{ s or '—' }}</span>{% endif %}
     </div>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="/inspections" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <a href="/inspections/{{ insp.id }}/pdf" class="btn btn-outline-primary btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+    </a>
+    <button class="btn btn-outline-success btn-sm" type="button"
+            data-bs-toggle="collapse" data-bs-target="#emailInspForm">
+      <i class="bi bi-envelope me-1"></i>Email PDF
+    </button>
     <form method="post" action="/inspections/{{ insp.id }}/delete" class="d-inline">
       <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Delete this inspection?"><i class="bi bi-trash"></i></button>
     </form>
   </div>
+</div>
+
+<!-- Email inspection PDF form (collapsible) -->
+<div class="collapse mb-3" id="emailInspForm">
+  <div class="card card-body py-2">
+    <form method="post" action="/inspections/{{ insp.id }}/email-pdf" class="row g-2 align-items-end">
+      <div class="col-12 col-sm-8">
+        <label class="form-label small mb-1">Recipient email address</label>
+        <input type="email" name="email" class="form-control form-control-sm"
+               placeholder="owner@example.com" required>
+      </div>
+      <div class="col-12 col-sm-4">
+        <button type="submit" class="btn btn-success btn-sm w-100">
+          <i class="bi bi-send me-1"></i>Send Report
+        </button>
+      </div>
+    </form>
+  </div>
+
 </div>
 
 <div class="row g-3">

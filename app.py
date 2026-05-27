@@ -11,6 +11,7 @@ from blueprints.owners import owners_bp
 from blueprints.insurance import insurance_bp
 from blueprints.ledger import ledger_bp
 from blueprints.leases import leases_bp
+from blueprints.pdf_export import pdf_export_bp
 
 
 def create_app():
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(insurance_bp)
     app.register_blueprint(ledger_bp)
     app.register_blueprint(leases_bp)
+    app.register_blueprint(pdf_export_bp)
 
     @app.route('/')
     def dashboard():
