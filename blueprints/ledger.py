@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from models import db, WorkOrder, Owner, Property
+from models import db, WorkOrder, Owner, Property, UtilityExpense
 from datetime import date
 
 ledger_bp = Blueprint('ledger', __name__)
@@ -12,33 +12,56 @@ def list_ledger():
         billed_to_owner='Yes', status='Completed'
     ).order_by(WorkOrder.date_completed.desc()).all()
 
+    # All utility expenses, grouped by owner
+    utility_exps = UtilityExpense.query.order_by(UtilityExpense.expense_date.desc()).all()
+
     # Build owner buckets
     owner_map = {}
-    for wo in billed_wos:
-        oid = wo.owner_id or 0
+
+    def _get_bucket(oid, owner_obj):
         if oid not in owner_map:
             owner_map[oid] = {
-                'owner': wo.owner,
-                'pending': [],
-                'deducted': [],
+                'owner': owner_obj,
+                'pending': [],        # WO items
+                'deducted': [],       # WO items
                 'pending_total': 0,
                 'deducted_total': 0,
+                'util_pending': [],   # UtilityExpense items
+                'util_deducted': [],  # UtilityExpense items
+                'util_pending_total': 0,
+                'util_deducted_total': 0,
             }
+        return owner_map[oid]
+
+    for wo in billed_wos:
+        oid = wo.owner_id or 0
+        b = _get_bucket(oid, wo.owner)
         amount = float(wo.actual_cost or 0)
         if wo.owner_settlement_status == 'Deducted':
-            owner_map[oid]['deducted'].append(wo)
-            owner_map[oid]['deducted_total'] += amount
+            b['deducted'].append(wo)
+            b['deducted_total'] += amount
         else:
-            owner_map[oid]['pending'].append(wo)
-            owner_map[oid]['pending_total'] += amount
+            b['pending'].append(wo)
+            b['pending_total'] += amount
 
-    # Sort: owners with pending balance first
+    for exp in utility_exps:
+        oid = exp.owner_id or 0
+        b = _get_bucket(oid, exp.owner)
+        amount = float(exp.amount or 0)
+        if exp.settlement_status == 'Deducted':
+            b['util_deducted'].append(exp)
+            b['util_deducted_total'] += amount
+        else:
+            b['util_pending'].append(exp)
+            b['util_pending_total'] += amount
+
+    # Sort: owners with pending balance first (WOs + utility expenses)
     buckets = sorted(owner_map.values(),
-                     key=lambda b: b['pending_total'], reverse=True)
+                     key=lambda b: b['pending_total'] + b['util_pending_total'], reverse=True)
 
-    total_outstanding = sum(b['pending_total'] for b in buckets)
-    owners_with_balance = sum(1 for b in buckets if b['pending_total'] > 0)
-    pending_count = sum(len(b['pending']) for b in buckets)
+    total_outstanding = sum(b['pending_total'] + b['util_pending_total'] for b in buckets)
+    owners_with_balance = sum(1 for b in buckets if b['pending_total'] + b['util_pending_total'] > 0)
+    pending_count = sum(len(b['pending']) + len(b['util_pending']) for b in buckets)
 
     return render_template('ledger/list.html',
                            buckets=buckets,

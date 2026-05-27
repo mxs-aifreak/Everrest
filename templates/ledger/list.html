@@ -23,7 +23,7 @@
   <div class="col-4">
     <div class="card text-center py-3">
       <div class="fw-bold text-warning" style="font-size:1.6rem;">{{ pending_count }}</div>
-      <div class="text-muted small">WOs Pending Deduction</div>
+      <div class="text-muted small">Items Pending Deduction</div>
     </div>
   </div>
 </div>
@@ -38,11 +38,13 @@
         {% if b.owner %}<a href="/owners/{{ b.owner.id }}" class="text-muted small ms-1"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        {% if b.pending_total > 0 %}
-        <span class="fw-bold text-danger">${{ '%.2f'|format(b.pending_total) }} outstanding</span>
+        {% set total_pending = b.pending_total + b.util_pending_total %}
+        {% set total_settled = b.deducted_total + b.util_deducted_total %}
+        {% if total_pending > 0 %}
+        <span class="fw-bold text-danger">${{ '%.2f'|format(total_pending) }} outstanding</span>
         {% endif %}
-        {% if b.deducted_total > 0 %}
-        <span class="text-success small"><i class="bi bi-check-circle me-1"></i>${{ '%.2f'|format(b.deducted_total) }} settled</span>
+        {% if total_settled > 0 %}
+        <span class="text-success small"><i class="bi bi-check-circle me-1"></i>${{ '%.2f'|format(total_settled) }} settled</span>
         {% endif %}
         {% if b.owner %}
         <a href="/ledger/owner/{{ b.owner.id }}/pdf" class="btn btn-outline-primary btn-sm py-0 px-2" title="Download Invoice PDF" target="_blank">
@@ -75,18 +77,22 @@
     </div>
     {% endif %}
 
-    {% if b.pending %}
+    {% set has_any = b.pending or b.util_pending or b.deducted or b.util_deducted %}
+
+    {% if b.pending or b.util_pending %}
     <div class="card-body pb-0">
       <p class="fw-semibold text-muted small mb-2"><i class="bi bi-clock me-1"></i>Pending Deduction from Rent</p>
+
       {% for wo in b.pending %}
       <div class="border rounded p-3 mb-2" style="background:#fffbf0;">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
           <div>
+            <span class="status-badge badge-na me-1">WO</span>
             <span class="fw-semibold">{{ wo.wo_number }}</span>
             <span class="text-muted small ms-2">{{ wo.category }}</span><br>
             <span class="small">{{ wo.property.address if wo.property else '—' }}</span><br>
             <span class="text-muted small">Completed: {{ wo.date_completed|dateformat if wo.date_completed else '—' }}</span>
-            {% if wo.description %}<br><span class="text-muted small fst-italic">{{ wo.description[:80] }}{% if wo.description|length > 80 %}…{% endif %}</span>{% endif %}
+            {% if wo.description %}<br><span class="text-muted small fst-italic">{{ wo.description[:80] }}{% if wo.description|length > 80 %}...{% endif %}</span>{% endif %}
           </div>
           <div class="text-end">
             <div class="fw-bold text-danger fs-5">${{ '%.2f'|format(wo.actual_cost|float) }}</div>
@@ -117,18 +123,59 @@
         </div>
       </div>
       {% endfor %}
+
+      {% for exp in b.util_pending %}
+      <div class="border rounded p-3 mb-2" style="background:#f0f8ff;">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <span class="status-badge badge-active me-1">Utility</span>
+            <span class="fw-semibold">{{ exp.utility_type or 'Expense' }}</span><br>
+            <span class="small">{{ exp.property.address if exp.property else '—' }}</span>
+            {% if exp.billing_period %} &middot; <span class="text-muted small">{{ exp.billing_period }}</span>{% endif %}<br>
+            {% if exp.description %}<span class="text-muted small fst-italic">{{ exp.description[:100] }}</span>{% endif %}
+          </div>
+          <div class="text-end">
+            <div class="fw-bold text-danger fs-5">${{ '%.2f'|format(exp.amount|float) }}</div>
+            <button class="btn btn-sm btn-navy mt-1" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#deductUtilForm{{ exp.id }}">
+              <i class="bi bi-check-circle me-1"></i>Mark Deducted
+            </button>
+          </div>
+        </div>
+        <div class="collapse mt-3" id="deductUtilForm{{ exp.id }}">
+          <form method="post" action="/ledger/utility-expense/{{ exp.id }}/deduct" class="row g-2">
+            <div class="col-12 col-sm-4">
+              <label class="form-label small">Deduction Date</label>
+              <input type="date" name="settlement_date" class="form-control form-control-sm"
+                     value="{{ today }}">
+            </div>
+            <div class="col-12 col-sm-8">
+              <label class="form-label small">Notes (e.g. "Deducted from June disbursement")</label>
+              <input type="text" name="settlement_notes" class="form-control form-control-sm"
+                     placeholder="Which disbursement this was deducted from">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-success btn-sm">
+                <i class="bi bi-check-lg me-1"></i>Confirm Deduction of ${{ '%.2f'|format(exp.amount|float) }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
 
-    {% if b.deducted %}
+    {% if b.deducted or b.util_deducted %}
     <div class="card-body pt-2">
       <p class="fw-semibold text-muted small mb-2 mt-2"><i class="bi bi-check-circle me-1"></i>Settled (Deducted from Rent)</p>
       <div class="table-responsive">
         <table class="table table-sm mb-0" style="font-size:.82rem;">
-          <thead><tr><th>WO #</th><th>Property</th><th>Amount</th><th>Deducted On</th><th>Notes</th><th></th></tr></thead>
+          <thead><tr><th>Type</th><th>Reference</th><th>Property</th><th>Amount</th><th>Deducted On</th><th>Notes</th><th></th></tr></thead>
           <tbody>
           {% for wo in b.deducted %}
           <tr class="text-muted">
+            <td><span class="status-badge badge-na">WO</span></td>
             <td>{{ wo.wo_number }}</td>
             <td>{{ wo.property.address if wo.property else '—' }}</td>
             <td class="text-success fw-semibold">${{ '%.2f'|format(wo.actual_cost|float) }}</td>
@@ -144,14 +191,32 @@
             </td>
           </tr>
           {% endfor %}
+          {% for exp in b.util_deducted %}
+          <tr class="text-muted">
+            <td><span class="status-badge badge-active">Utility</span></td>
+            <td>{{ exp.utility_type or '—' }}{% if exp.billing_period %} <span class="text-muted">({{ exp.billing_period }})</span>{% endif %}</td>
+            <td>{{ exp.property.address if exp.property else '—' }}</td>
+            <td class="text-success fw-semibold">${{ '%.2f'|format(exp.amount|float) }}</td>
+            <td>{{ exp.settlement_date|dateformat if exp.settlement_date else '—' }}</td>
+            <td>{{ exp.settlement_notes or '—' }}</td>
+            <td>
+              <form method="post" action="/ledger/utility-expense/{{ exp.id }}/reopen" class="d-inline">
+                <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Move back to pending"
+                        onclick="return confirm('Move back to pending?')">
+                  <i class="bi bi-arrow-counterclockwise" style="font-size:.75rem;"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
     {% endif %}
 
-    {% if not b.pending and not b.deducted %}
-    <div class="card-body text-muted small">No WOs billed.</div>
+    {% if not has_any %}
+    <div class="card-body text-muted small">No charges on record.</div>
     {% endif %}
   </div>
   {% endfor %}

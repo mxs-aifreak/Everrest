@@ -23,6 +23,13 @@ SYSTEM_WORKING = ['Yes', 'No', 'Partially Working']
 BACKFLOW_STATUSES = ['OK', 'Broken', 'Replaced', 'Not Tested', 'N/A']
 REPAIR_STATUSES = ['Not Started', 'Scheduled', 'In Progress', 'Completed', 'N/A']
 
+UTILITY_TYPES = ['Electric', 'Gas', 'Water', 'Trash', 'Sewer', 'Internet', 'Cable', 'HOA', 'Other']
+RESPONSIBLE_PARTIES = ['Owner', 'Tenant', 'Shared']
+UTILITY_STATUSES = [
+    'Active-Owner', 'Active-Tenant', 'Pending Move-In Transfer',
+    'Pending Move-Out Transfer', 'Disconnected', 'Unknown',
+]
+
 
 @properties_bp.route('/properties')
 def list_properties():
@@ -143,7 +150,10 @@ def property_detail(prop_id):
                            system_working=SYSTEM_WORKING,
                            backflow_statuses=BACKFLOW_STATUSES,
                            repair_statuses=REPAIR_STATUSES,
-                           sprinkler_yes_no=SPRINKLER_YES_NO)
+                           sprinkler_yes_no=SPRINKLER_YES_NO,
+                           utility_types=UTILITY_TYPES,
+                           responsible_parties=RESPONSIBLE_PARTIES,
+                           utility_statuses=UTILITY_STATUSES)
 
 
 @properties_bp.route('/properties/<int:prop_id>/edit', methods=['POST'])

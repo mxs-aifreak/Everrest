@@ -125,6 +125,7 @@ body {
 .badge-signed        { background: #d4efdf; color: #1e8449; }
 .badge-notsent       { background: #f2f3f4; color: #7f8c8d; }
 .badge-sent          { background: #fdebd0; color: #d35400; }
+.badge-navy          { background: #d6e4f0; color: #0f1b2e; }
 
 .status-badge {
   display: inline-block;

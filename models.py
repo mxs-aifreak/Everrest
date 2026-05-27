@@ -154,6 +154,44 @@ class WorkOrder(db.Model):
     owner_settlement_notes = db.Column(db.Text)
 
 
+class Utility(db.Model):
+    __tablename__ = 'utilities'
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id', ondelete='CASCADE'), nullable=False)
+    utility_type = db.Column(db.String(50))          # Electric / Gas / Water / Trash / Internet / Cable / HOA / Other
+    provider_name = db.Column(db.String(200))
+    account_number = db.Column(db.String(100))
+    responsible_party = db.Column(db.String(50), default='Owner')   # Owner / Tenant / Shared
+    status = db.Column(db.String(80), default='Active-Owner')
+    # Active-Owner / Active-Tenant / Pending Move-In Transfer / Pending Move-Out Transfer / Disconnected / Unknown
+    estimated_monthly = db.Column(db.Numeric(10, 2))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('utilities', lazy=True, cascade='all, delete-orphan'))
+    expenses = db.relationship('UtilityExpense', backref='utility', lazy=True)
+
+
+class UtilityExpense(db.Model):
+    __tablename__ = 'utility_expenses'
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id', ondelete='CASCADE'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=True)
+    utility_id = db.Column(db.Integer, db.ForeignKey('utilities.id', ondelete='SET NULL'), nullable=True)
+    utility_type = db.Column(db.String(50))          # denormalized for display when utility is deleted
+    description = db.Column(db.String(300))
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    expense_date = db.Column(db.Date)
+    billing_period = db.Column(db.String(100))       # e.g. "May 2026"
+    settlement_status = db.Column(db.String(50), default='Pending')  # Pending / Deducted
+    settlement_date = db.Column(db.Date)
+    settlement_notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    property = db.relationship('Property', backref=db.backref('utility_expenses', lazy=True))
+    owner = db.relationship('Owner', backref=db.backref('utility_expenses', lazy=True))
+
+
 class Insurance(db.Model):
     __tablename__ = 'insurance'
     id = db.Column(db.Integer, primary_key=True)

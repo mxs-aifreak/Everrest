@@ -22,7 +22,7 @@
 
 <!-- Tabs -->
 <ul class="nav nav-tabs mb-3" id="propTabs">
-  {% for t, label, icon in [('overview','Overview','house'), ('sprinkler','Sprinkler','droplet'), ('workorders','Work Orders','tools'), ('inspections','Inspections','clipboard-check'), ('owners','Owners','people')] %}
+  {% for t, label, icon in [('overview','Overview','house'), ('sprinkler','Sprinkler','droplet'), ('workorders','Work Orders','tools'), ('inspections','Inspections','clipboard-check'), ('owners','Owners','people'), ('utilities','Utilities','lightning-charge')] %}
   <li class="nav-item">
     <a class="nav-link {% if tab == t %}active{% endif %}" href="?tab={{ t }}">
       <i class="bi bi-{{ icon }} me-1"></i><span class="d-none d-sm-inline">{{ label }}</span>
@@ -431,10 +431,321 @@
   </div>
 </div>
 {% endif %}
+<!-- ── Tab: Utilities ─────────────────────────────────── -->
+{% if tab == 'utilities' %}
+
+{% set utils = prop.utilities | sort(attribute='utility_type') %}
+{% set expenses = prop.utility_expenses | sort(attribute='expense_date', reverse=True) %}
+{% set pending_expenses = expenses | selectattr('settlement_status', 'equalto', 'Pending') | list %}
+{% set settled_expenses = expenses | selectattr('settlement_status', 'equalto', 'Deducted') | list %}
+
+<!-- KPI strip -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-navy" style="font-size:1.5rem;">{{ utils | length }}</div>
+      <div class="text-muted small">Utility Accounts</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-warning" style="font-size:1.5rem;">
+        {{ utils | selectattr('status', 'in', ['Pending Move-In Transfer','Pending Move-Out Transfer']) | list | length }}
+      </div>
+      <div class="text-muted small">Pending Transfers</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-danger" style="font-size:1.5rem;">
+        ${{ '%.2f' | format(pending_expenses | sum(attribute='amount') | float) }}
+      </div>
+      <div class="text-muted small">Expenses Pending</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold text-success" style="font-size:1.5rem;">
+        ${{ '%.2f' | format(settled_expenses | sum(attribute='amount') | float) }}
+      </div>
+      <div class="text-muted small">Expenses Settled</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Utility Accounts ─────────────────── -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-lightning-charge me-2"></i>Utility Accounts</span>
+    <button class="btn btn-navy btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#addUtilForm">
+      <i class="bi bi-plus-lg me-1"></i>Add Utility
+    </button>
+  </div>
+
+  <!-- Add utility form -->
+  <div class="collapse" id="addUtilForm">
+    <div class="card-body border-top py-2" style="background:#f8f9fa;">
+      <form method="post" action="/properties/{{ prop.id }}/utilities/add">
+        <div class="row g-2 align-items-end">
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Type</label>
+            <select name="utility_type" class="form-select form-select-sm">
+              {% for t in utility_types %}<option>{{ t }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Responsible Party</label>
+            <select name="responsible_party" class="form-select form-select-sm">
+              {% for r in responsible_parties %}<option>{{ r }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Status</label>
+            <select name="status" class="form-select form-select-sm">
+              {% for s in utility_statuses %}<option>{{ s }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Provider</label>
+            <input type="text" name="provider_name" class="form-control form-control-sm" placeholder="Xcel Energy">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Account #</label>
+            <input type="text" name="account_number" class="form-control form-control-sm" placeholder="Optional">
+          </div>
+          <div class="col-6 col-md-1">
+            <label class="form-label small mb-1">Est. $/mo</label>
+            <input type="number" step="0.01" name="estimated_monthly" class="form-control form-control-sm" placeholder="0.00">
+          </div>
+          <div class="col-12 col-md-1 d-flex align-items-end">
+            <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg"></i></button>
+          </div>
+          <div class="col-12">
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="Notes (optional)">
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    {% if utils %}
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.83rem;">
+        <thead><tr><th>Type</th><th>Provider</th><th>Account #</th><th>Responsible</th><th>Status</th><th>Est./mo</th><th></th></tr></thead>
+        <tbody>
+          {% for u in utils %}
+          <tr>
+            <td class="fw-semibold">{{ u.utility_type }}</td>
+            <td>{{ u.provider_name or '—' }}</td>
+            <td class="text-muted">{{ u.account_number or '—' }}</td>
+            <td>
+              {% if u.responsible_party == 'Owner' %}<span class="status-badge badge-navy">Owner</span>
+              {% elif u.responsible_party == 'Tenant' %}<span class="status-badge badge-active">Tenant</span>
+              {% else %}<span class="status-badge badge-medium">Shared</span>{% endif %}
+            </td>
+            <td>
+              {% if 'Pending' in u.status %}<span class="status-badge badge-pending">{{ u.status }}</span>
+              {% elif 'Active-Owner' == u.status %}<span class="status-badge badge-navy">Active-Owner</span>
+              {% elif 'Active-Tenant' == u.status %}<span class="status-badge badge-active">Active-Tenant</span>
+              {% elif 'Disconnected' == u.status %}<span class="status-badge badge-failed">Disconnected</span>
+              {% else %}<span class="status-badge badge-na">{{ u.status }}</span>{% endif %}
+            </td>
+            <td>{{ u.estimated_monthly | currency if u.estimated_monthly else '—' }}</td>
+            <td class="text-end">
+              <button class="btn btn-outline-secondary btn-sm py-0 px-1" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#editUtil{{ u.id }}" title="Edit">
+                <i class="bi bi-pencil" style="font-size:.75rem;"></i>
+              </button>
+              <form method="post" action="/utilities/{{ u.id }}/delete" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1"
+                        onclick="return confirm('Delete this utility record?')" title="Delete">
+                  <i class="bi bi-trash" style="font-size:.75rem;"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          <tr class="collapse" id="editUtil{{ u.id }}">
+            <td colspan="7" style="background:#f8f9fa;">
+              <form method="post" action="/utilities/{{ u.id }}/edit" class="p-2">
+                <div class="row g-2 align-items-end">
+                  <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1">Type</label>
+                    <select name="utility_type" class="form-select form-select-sm">
+                      {% for t in utility_types %}<option {% if u.utility_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1">Responsible</label>
+                    <select name="responsible_party" class="form-select form-select-sm">
+                      {% for r in responsible_parties %}<option {% if u.responsible_party == r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                      {% for s in utility_statuses %}<option {% if u.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1">Provider</label>
+                    <input type="text" name="provider_name" class="form-control form-control-sm" value="{{ u.provider_name or '' }}">
+                  </div>
+                  <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1">Account #</label>
+                    <input type="text" name="account_number" class="form-control form-control-sm" value="{{ u.account_number or '' }}">
+                  </div>
+                  <div class="col-4 col-md-1">
+                    <label class="form-label small mb-1">Est./mo</label>
+                    <input type="number" step="0.01" name="estimated_monthly" class="form-control form-control-sm" value="{{ u.estimated_monthly or '' }}">
+                  </div>
+                  <div class="col-12">
+                    <input type="text" name="notes" class="form-control form-control-sm" value="{{ u.notes or '' }}" placeholder="Notes">
+                  </div>
+                  <div class="col-12">
+                    <button type="submit" class="btn btn-success btn-sm">Save</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-1"
+                            data-bs-toggle="collapse" data-bs-target="#editUtil{{ u.id }}">Cancel</button>
+                  </div>
+                </div>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted small">
+      <i class="bi bi-lightning-charge fs-2 d-block mb-2 opacity-40"></i>
+      No utility accounts yet. Use <strong>Add Utility</strong> above to track which utilities exist and who is responsible.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Billable Expenses ─────────────────── -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-receipt me-2"></i>Billable Expenses <small class="text-muted ms-1">(deducted from disbursement)</small></span>
+    <button class="btn btn-navy btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#addExpForm">
+      <i class="bi bi-plus-lg me-1"></i>Add Expense
+    </button>
+  </div>
+
+  <!-- Add expense form -->
+  <div class="collapse" id="addExpForm">
+    <div class="card-body border-top py-2" style="background:#fffbf0;">
+      <form method="post" action="/properties/{{ prop.id }}/utility-expenses/add">
+        <div class="row g-2 align-items-end">
+          <div class="col-6 col-md-3">
+            <label class="form-label small mb-1">Utility Account (optional)</label>
+            <select name="utility_id" class="form-select form-select-sm">
+              <option value="">— None / Manual —</option>
+              {% for u in utils %}<option value="{{ u.id }}">{{ u.utility_type }}{% if u.provider_name %} — {{ u.provider_name }}{% endif %}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Type (if no account)</label>
+            <select name="utility_type" class="form-select form-select-sm">
+              {% for t in utility_types %}<option>{{ t }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Amount</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">$</span>
+              <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+            </div>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Expense Date</label>
+            <input type="date" name="expense_date" class="form-control form-control-sm" id="expenseDateInput">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Billing Period</label>
+            <input type="text" name="billing_period" class="form-control form-control-sm" placeholder="e.g. May 2026">
+          </div>
+          <div class="col-12">
+            <input type="text" name="description" class="form-control form-control-sm" placeholder="Description (e.g. Electric bill — owner responsible per lease)" required>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-plus-lg me-1"></i>Add to Ledger</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    {% if pending_expenses %}
+    <p class="fw-semibold text-muted small mb-0 px-3 pt-3"><i class="bi bi-clock me-1"></i>Pending Deduction</p>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.83rem;">
+        <thead><tr><th>Type</th><th>Description</th><th>Period</th><th>Date</th><th>Amount</th><th></th></tr></thead>
+        <tbody>
+          {% for exp in pending_expenses %}
+          <tr>
+            <td><span class="status-badge badge-pending">{{ exp.utility_type or '—' }}</span></td>
+            <td>{{ exp.description or '—' }}</td>
+            <td class="text-muted small">{{ exp.billing_period or '—' }}</td>
+            <td class="text-muted small">{{ exp.expense_date|dateformat if exp.expense_date else '—' }}</td>
+            <td class="fw-bold text-danger">${{ '%.2f'|format(exp.amount|float) }}</td>
+            <td class="text-end">
+              <form method="post" action="/utility-expenses/{{ exp.id }}/delete" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1"
+                        onclick="return confirm('Delete this expense?')" title="Delete">
+                  <i class="bi bi-trash" style="font-size:.75rem;"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if settled_expenses %}
+    <p class="fw-semibold text-muted small mb-0 px-3 pt-3"><i class="bi bi-check-circle me-1"></i>Settled</p>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.83rem;">
+        <thead><tr><th>Type</th><th>Description</th><th>Amount</th><th>Settled On</th><th>Notes</th></tr></thead>
+        <tbody>
+          {% for exp in settled_expenses %}
+          <tr class="text-muted">
+            <td>{{ exp.utility_type or '—' }}</td>
+            <td>{{ exp.description or '—' }}</td>
+            <td class="text-success fw-semibold">${{ '%.2f'|format(exp.amount|float) }}</td>
+            <td>{{ exp.settlement_date|dateformat if exp.settlement_date else '—' }}</td>
+            <td>{{ exp.settlement_notes or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if not pending_expenses and not settled_expenses %}
+    <div class="text-center py-4 text-muted small">
+      <i class="bi bi-receipt fs-2 d-block mb-2 opacity-40"></i>
+      No expenses logged yet. Add expenses above to track billable charges that will be deducted from the owner's rent disbursement.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Pre-fill today's date in expense date field
+const expDateInput = document.getElementById('expenseDateInput');
+if (expDateInput && !expDateInput.value) {
+  expDateInput.value = new Date().toISOString().split('T')[0];
+}
+
 // Property detail — sprinkler auto-logic
 const propBlowout    = document.getElementById('prop_fall_blowout_status');
 const propTurnoff    = document.getElementById('prop_turnoff_status');

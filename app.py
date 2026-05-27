@@ -12,6 +12,7 @@ from blueprints.insurance import insurance_bp
 from blueprints.ledger import ledger_bp
 from blueprints.leases import leases_bp
 from blueprints.pdf_export import pdf_export_bp
+from blueprints.utilities import utilities_bp
 
 
 def create_app():
@@ -36,6 +37,7 @@ def create_app():
     app.register_blueprint(ledger_bp)
     app.register_blueprint(leases_bp)
     app.register_blueprint(pdf_export_bp)
+    app.register_blueprint(utilities_bp)
 
     @app.route('/')
     def dashboard():
@@ -155,6 +157,11 @@ def _run_migrations():
         "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS renewal_status VARCHAR(50) DEFAULT 'Unknown'",
         "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS renewal_contacted_date DATE",
         "ALTER TABLE occupancy ADD COLUMN IF NOT EXISTS renewal_notes TEXT",
+        # Utilities tables — created by db.create_all() on fresh DB;
+        # on existing Railway DB the tables will be created by create_all() since they're new.
+        # These are no-op guards in case of partial state.
+        "ALTER TABLE utilities ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
+        "ALTER TABLE utility_expenses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
     ]
     with db.engine.connect() as conn:
         for sql in migrations:
